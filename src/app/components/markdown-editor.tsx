@@ -6,7 +6,6 @@ import rehypeRaw from "rehype-raw";
 import TurndownService from "turndown";
 import { uploadImage, proxyUploadImage } from "../../utils/supabase-client";
 
-// HTML → Markdown converter
 const turndown = new TurndownService({
   headingStyle: "atx",
   hr: "---",
@@ -14,7 +13,6 @@ const turndown = new TurndownService({
   codeBlockStyle: "fenced",
 });
 
-// Keep image tags as markdown
 turndown.addRule("images", {
   filter: "img",
   replacement: (_content, node) => {
@@ -31,10 +29,20 @@ interface MarkdownEditorProps {
   placeholder?: string;
 }
 
+const SIZE_PRESETS = [
+  { label: "소형", value: "25%" },
+  { label: "중형", value: "50%" },
+  { label: "대형", value: "75%" },
+  { label: "전체", value: "100%" },
+];
+
 export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorProps) {
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
+  const [sizeDialog, setSizeDialog] = useState<{ url: string; alt: string } | null>(null);
+  const [imageSize, setImageSize] = useState("100%");
+  const sizeResolveRef = useRef<((size: string | null) => void) | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const valueRef = useRef(value);
@@ -66,31 +74,57 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
     });
   }, [onChange]);
 
+  const openSizeDialog = useCallback((url: string, alt: string): Promise<string | null> => {
+    return new Promise((resolve) => {
+      setSizeDialog({ url, alt });
+      setImageSize("100%");
+      sizeResolveRef.current = resolve;
+    });
+  }, []);
+
+  const handleSizeConfirm = () => {
+    if (sizeResolveRef.current) sizeResolveRef.current(imageSize);
+    sizeResolveRef.current = null;
+    setSizeDialog(null);
+  };
+
+  const handleSizeCancel = () => {
+    if (sizeResolveRef.current) sizeResolveRef.current(null);
+    sizeResolveRef.current = null;
+    setSizeDialog(null);
+  };
+
   const handleImageUpload = useCallback(async (files: FileList | File[]) => {
-    setUploading(true);
-    setUploadStatus("이미지 업로드 중...");
-    try {
-      for (const file of Array.from(files)) {
-        if (!file.type.startsWith("image/")) continue;
-        const url = await uploadImage(file);
-        const altText = file.name === "image.png" ? "image" : file.name.replace(/\.[^.]+$/, "");
-        insertAtCursor(`\n![${altText}](${url})\n`);
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+      setUploading(true);
+      setUploadStatus("이미지 업로드 중...");
+      let url: string;
+      try {
+        url = await uploadImage(file);
+      } catch (error) {
+        console.error("Image upload failed:", error);
+        alert("이미지 업로드에 실패했습니다.");
+        setUploading(false);
+        setUploadStatus("");
+        continue;
       }
-    } catch (error) {
-      console.error("Image upload failed:", error);
-      alert("이미지 업로드에 실패했습니다.");
-    } finally {
       setUploading(false);
       setUploadStatus("");
+      const altText = file.name === "image.png" ? "image" : file.name.replace(/\.[^.]+$/, "");
+      const size = await openSizeDialog(url, altText);
+      if (size === null) continue;
+      if (size === "100%") {
+        insertAtCursor(`\n![${altText}](${url})\n`);
+      } else {
+        insertAtCursor(`\n<img src="${url}" alt="${altText}" style="width: ${size}; max-width: 100%;" />\n`);
+      }
     }
-  }, [insertAtCursor]);
+  }, [insertAtCursor, openSizeDialog]);
 
-  // Process pasted HTML: convert to markdown and upload images
   const processHtmlPaste = useCallback(async (html: string) => {
-    // Convert HTML to markdown
     let markdown = turndown.turndown(html);
 
-    // Find all image URLs in the markdown
     const imgRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
     const images: { full: string; alt: string; url: string }[] = [];
     let match;
@@ -99,12 +133,10 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
     }
 
     if (images.length === 0) {
-      // No images, just insert the markdown
       insertAtCursor(markdown);
       return;
     }
 
-    // Upload images
     setUploading(true);
     let processed = markdown;
 
@@ -112,7 +144,6 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       const img = images[i];
       setUploadStatus(`이미지 업로드 중... (${i + 1}/${images.length})`);
       try {
-        // Skip data URIs that are too small (tracking pixels etc)
         if (img.url.startsWith("data:") && img.url.length < 200) {
           processed = processed.replace(img.full, "");
           continue;
@@ -120,27 +151,22 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
 
         let newUrl: string;
         if (img.url.startsWith("data:image/")) {
-          // Data URL → convert to file and upload
           const res = await fetch(img.url);
           const blob = await res.blob();
           const file = new File([blob], `pasted-image-${i + 1}.png`, { type: blob.type });
           newUrl = await uploadImage(file);
         } else if (img.url.startsWith("http")) {
-          // External URL → proxy upload
           try {
             newUrl = await proxyUploadImage(img.url);
           } catch {
-            // If proxy fails, keep original URL
             newUrl = img.url;
           }
         } else {
-          // Unknown format, skip
           continue;
         }
         processed = processed.replace(img.url, newUrl);
       } catch (error) {
         console.error(`Failed to upload image ${i + 1}:`, error);
-        // Keep original URL on failure
       }
     }
 
@@ -152,7 +178,6 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData.items;
 
-    // 1. Check for direct image files (screenshot, copied image file)
     const imageFiles: File[] = [];
     for (const item of Array.from(items)) {
       if (item.type.startsWith("image/")) {
@@ -161,18 +186,14 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       }
     }
 
-    // 2. Check for rich HTML content (Notion, web pages, etc)
     const html = e.clipboardData.getData("text/html");
-    const plainText = e.clipboardData.getData("text/plain");
 
-    // If we have image files AND no HTML, upload directly
     if (imageFiles.length > 0 && !html) {
       e.preventDefault();
       handleImageUpload(imageFiles);
       return;
     }
 
-    // If we have HTML with rich content (not just plain text wrapper)
     if (html) {
       const hasRichContent = /<(h[1-6]|p|img|ul|ol|blockquote|hr|strong|em|table)/i.test(html);
       if (hasRichContent) {
@@ -182,14 +203,11 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       }
     }
 
-    // If we have image files from clipboard
     if (imageFiles.length > 0) {
       e.preventDefault();
       handleImageUpload(imageFiles);
       return;
     }
-
-    // Otherwise, let default paste behavior handle it (plain text)
   }, [handleImageUpload, processHtmlPaste]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -311,6 +329,71 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
           )}
         </div>
       )}
+
+      {/* Image size dialog */}
+      {sizeDialog && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={handleSizeCancel}
+        >
+          <div
+            className="bg-background border border-border rounded-xl p-6 w-[480px] max-w-[90vw] shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold mb-4">이미지 크기 설정</h3>
+            <div className="mb-4 rounded-lg overflow-hidden bg-muted/50 flex items-center justify-center h-[180px]">
+              <img
+                src={sizeDialog.url}
+                alt={sizeDialog.alt}
+                className="max-h-[180px] max-w-full object-contain"
+              />
+            </div>
+            <div className="flex gap-2 mb-4">
+              {SIZE_PRESETS.map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setImageSize(preset.value)}
+                  className={`flex-1 py-2 rounded-md text-sm font-medium transition-colors ${
+                    imageSize === preset.value
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  <div>{preset.label}</div>
+                  <div className="text-xs opacity-70">{preset.value}</div>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mb-5">
+              <label className="text-sm text-muted-foreground whitespace-nowrap">직접 입력</label>
+              <input
+                type="text"
+                value={imageSize}
+                onChange={(e) => setImageSize(e.target.value)}
+                placeholder="예: 400px, 60%"
+                className="flex-1 px-3 py-1.5 text-sm bg-muted border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={handleSizeCancel}
+                className="px-4 py-2 text-sm rounded-md bg-muted text-muted-foreground hover:bg-muted/80 transition-colors"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={handleSizeConfirm}
+                className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                삽입
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -335,7 +418,6 @@ export function MarkdownRenderer({ content }: { content: string }) {
         rehypePlugins={[rehypeRaw]}
         components={{
           p: ({ children, ...props }) => {
-            // Check if this paragraph contains multiple images
             const childArray = Array.isArray(children) ? children : [children];
             const imgChildren = childArray.filter(
               (child: any) => child?.type === "img" || child?.props?.node?.tagName === "img"
@@ -344,7 +426,6 @@ export function MarkdownRenderer({ content }: { content: string }) {
               (child: any) => child !== "\n" && child !== " " && child !== ""
             );
 
-            // Multiple images → render as grid
             if (imgChildren.length >= 2 && imgChildren.length === nonEmptyChildren.length) {
               const cols = imgChildren.length === 2 ? "grid-cols-2"
                 : imgChildren.length === 3 ? "grid-cols-3"
@@ -363,22 +444,26 @@ export function MarkdownRenderer({ content }: { content: string }) {
               );
             }
 
-            // Single image → centered with margin
             if (imgChildren.length === 1 && imgChildren.length === nonEmptyChildren.length) {
               return <div className="my-6">{children}</div>;
             }
 
             return <p {...props}>{children}</p>;
           },
-          img: ({ src, alt, ...props }) => (
-            <img
-              src={src}
-              alt={alt || ""}
-              loading="lazy"
-              className="rounded-lg w-full h-auto object-cover"
-              {...props}
-            />
-          ),
+          img: ({ src, alt, style, ...props }) => {
+            const customStyle = style as React.CSSProperties | undefined;
+            const hasCustomWidth = customStyle?.width !== undefined;
+            return (
+              <img
+                src={src}
+                alt={alt || ""}
+                loading="lazy"
+                style={customStyle}
+                className={`rounded-lg h-auto object-cover ${hasCustomWidth ? "max-w-full" : "w-full"}`}
+                {...props}
+              />
+            );
+          },
         }}
       >
         {content}
