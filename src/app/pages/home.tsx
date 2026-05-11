@@ -411,7 +411,7 @@ export function Home() {
       <section id="activities" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
           <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Activities</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">활동 내역</h2>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">활동</h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl mb-10">
             세미나, 프로젝트, 워크숍 등 다양한 활동을 소개합니다.
           </p>
