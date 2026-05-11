@@ -116,7 +116,7 @@ export function AdminRecruitTab() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8 pb-12">
+    <div className="space-y-8 pb-12">
 
       {/* 기본 설정 */}
       <section>
