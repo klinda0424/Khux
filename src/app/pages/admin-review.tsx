@@ -67,7 +67,9 @@ export function AdminReview() {
 
   // Bulk export / cleanup
   const [exportingAll, setExportingAll] = useState(false);
+  const [exportingBatch, setExportingBatch] = useState<string | null>(null);
   const [deletingEnded, setDeletingEnded] = useState(false);
+  const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -303,6 +305,64 @@ export function AdminReview() {
     a.download = `${sessionId}_${type}.csv`;
     a.click();
     URL.revokeObjectURL(a.href);
+  }
+
+  async function exportBatchByTitle(title: string) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    setExportingBatch(title);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      const safeTitle = title.replace(/[\\/:*?"<>|]/g, "_").trim();
+      for (const type of ["common", "leader"] as const) {
+        const url = `${API_BASE_URL}/review/export-all?type=${type}&title=${encodeURIComponent(title)}`;
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${publicAnonKey}`,
+            "x-user-token": session.access_token,
+          },
+        });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `${safeTitle}_${type}_${today}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    } finally {
+      setExportingBatch(null);
+    }
+  }
+
+  async function deleteBatchByTitle(title: string) {
+    const batch = sessions.filter((s) => s.title === title);
+    if (batch.length === 0) return;
+    const list = batch.map((s) => `• ${s.team_name}`).join("\n");
+    if (!confirm(`"${title}" 회차 전체(${batch.length}개 세션)를 삭제하시겠습니까?\n관련된 모든 리뷰 데이터도 함께 삭제됩니다.\n\n${list}`)) return;
+
+    setDeletingBatch(title);
+    const failed: string[] = [];
+    try {
+      for (const sess of batch) {
+        try {
+          const res = await apiFetchAuth(`/review/sessions/${sess.id}`, { method: "DELETE" });
+          if (!res.ok) failed.push(sess.team_name);
+        } catch {
+          failed.push(sess.team_name);
+        }
+      }
+      if (selectedSession && batch.some((s) => s.id === selectedSession)) {
+        setSelectedSession(null);
+        setStatusData([]);
+      }
+      await fetchSessions();
+      if (failed.length > 0) {
+        alert(`${batch.length - failed.length}개 삭제 완료. 실패: ${failed.join(", ")}`);
+      }
+    } finally {
+      setDeletingBatch(null);
+    }
   }
 
   async function deleteEndedSessions() {
@@ -648,8 +708,55 @@ export function AdminReview() {
             <p className="text-muted-foreground">리뷰 세션이 없습니다.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {sessions.map((sess) => (
+          <div className="space-y-8">
+            {Array.from(
+              sessions.reduce((map, s) => {
+                const arr = map.get(s.title) ?? [];
+                arr.push(s);
+                map.set(s.title, arr);
+                return map;
+              }, new Map<string, ReviewSession[]>())
+            ).map(([title, batch]) => {
+              const earliest = batch.reduce((min, s) =>
+                new Date(s.started_at) < new Date(min.started_at) ? s : min
+              );
+              const activeCount = batch.filter((s) => s.active).length;
+              return (
+                <div key={title} className="space-y-3">
+                  {/* Batch (회차) header */}
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <div className="min-w-0">
+                      <h2 className="font-bold text-base truncate">{title}</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {batch.length}개 세션 · 진행 중 {activeCount} ·{" "}
+                        {new Date(earliest.started_at).toLocaleDateString("ko-KR")} 시작
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <button
+                        onClick={() => exportBatchByTitle(title)}
+                        disabled={exportingBatch === title}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border bg-card rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                        title={`"${title}" 회차의 공통+리더 통합 CSV 다운로드`}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        {exportingBatch === title ? "다운로드 중..." : "회차 통합 CSV"}
+                      </button>
+                      <button
+                        onClick={() => deleteBatchByTitle(title)}
+                        disabled={deletingBatch === title}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs border border-destructive/30 text-destructive bg-card rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                        title={`"${title}" 회차의 모든 팀 세션을 삭제`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        {deletingBatch === title ? "삭제 중..." : "회차 전체 삭제"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sessions in this batch */}
+                  <div className="space-y-3">
+            {batch.map((sess) => (
               <div
                 key={sess.id}
                 className="bg-card border border-border rounded-xl overflow-hidden"
@@ -658,7 +765,7 @@ export function AdminReview() {
                 <div className="p-5 flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{sess.title}</h3>
+                      <h3 className="font-semibold">{sess.team_name}</h3>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full ${
                           sess.active
@@ -670,7 +777,7 @@ export function AdminReview() {
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {sess.team_name} — {sess.members?.length || 0}명 —{" "}
+                      {sess.members?.length || 0}명 —{" "}
                       {new Date(sess.started_at).toLocaleDateString("ko-KR")}
                     </p>
                   </div>
@@ -761,6 +868,10 @@ export function AdminReview() {
                 )}
               </div>
             ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

@@ -1341,7 +1341,11 @@ app.get("/make-server-d0140d55/review/export-all", async (c) => {
     if (!user) return c.json({ error: "Unauthorized" }, 401);
 
     const type = c.req.query("type") || "common";
-    const sessions = await kv.getByPrefix("review_session:");
+    const titleFilter = c.req.query("title");
+    let sessions = await kv.getByPrefix("review_session:");
+    if (titleFilter) {
+      sessions = sessions.filter((s: any) => s.title === titleFilter);
+    }
     sessions.sort((a: any, b: any) =>
       new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
     );
