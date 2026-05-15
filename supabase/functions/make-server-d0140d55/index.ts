@@ -1332,6 +1332,61 @@ app.get("/make-server-d0140d55/review/sessions/:id/export", async (c) => {
   }
 });
 
+// CSV export across ALL sessions (admin only)
+// Path avoids `/review/sessions/:id` to prevent route ambiguity.
+app.get("/make-server-d0140d55/review/export-all", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const type = c.req.query("type") || "common";
+    const sessions = await kv.getByPrefix("review_session:");
+    sessions.sort((a: any, b: any) =>
+      new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
+    );
+
+    const criteriaNames = type === "leader"
+      ? LEADER_CRITERIA.map((c) => c.name)
+      : REVIEW_CRITERIA.map((c) => c.name);
+
+    const headers = [
+      "\uC138\uC158ID", "\uC138\uC158\uC81C\uBAA9", "\uD300\uBA85", "\uB9AC\uBDF0\uC5B4ID", "\uB9AC\uBDF0\uC5B4",
+      "\uB300\uC0C1ID", "\uB300\uC0C1", ...criteriaNames, "\uCF54\uBA58\uD2B8", "\uC81C\uCD9C\uC2DC\uAC04",
+    ];
+
+    const allRows: string[] = [];
+    for (const sess of sessions) {
+      const prefix = type === "leader"
+        ? `leader_review:${sess.id}:`
+        : `review:${sess.id}:`;
+      const reviews = await kv.getByPrefixWithKeys(prefix);
+      for (const r of reviews) {
+        const v = r.value;
+        const row = [
+          sess.id, sess.title, sess.team_name,
+          v.reviewer_id, v.reviewer_name, v.target_id, v.target_name,
+          ...v.scores, v.comment, v.submitted_at,
+        ]
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",");
+        allRows.push(row);
+      }
+    }
+
+    const csv = "\uFEFF" + [headers.join(","), ...allRows].join("\n");
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="all_sessions_${type}.csv"`,
+      },
+    });
+  } catch (error) {
+    console.log(`Error exporting all sessions: ${error}`);
+    return c.json({ error: "Failed to export all" }, 500);
+  }
+});
+
 // ============ Bot API ============
 
 // Get submission status for bot reminders

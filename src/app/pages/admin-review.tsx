@@ -65,6 +65,10 @@ export function AdminReview() {
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
 
+  // Bulk export / cleanup
+  const [exportingAll, setExportingAll] = useState(false);
+  const [deletingEnded, setDeletingEnded] = useState(false);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) navigate("/admin/login");
@@ -301,6 +305,66 @@ export function AdminReview() {
     URL.revokeObjectURL(a.href);
   }
 
+  async function deleteEndedSessions() {
+    const ended = sessions.filter((s) => !s.active);
+    if (ended.length === 0) {
+      alert("종료된 세션이 없습니다.");
+      return;
+    }
+    const list = ended.map((s) => `• ${s.title} (${s.team_name})`).join("\n");
+    if (!confirm(`종료된 세션 ${ended.length}개를 삭제하시겠습니까?\n관련된 모든 리뷰 데이터도 함께 삭제됩니다.\n\n${list}`)) return;
+
+    setDeletingEnded(true);
+    const failed: string[] = [];
+    try {
+      for (const sess of ended) {
+        try {
+          const res = await apiFetchAuth(`/review/sessions/${sess.id}`, { method: "DELETE" });
+          if (!res.ok) failed.push(sess.title);
+        } catch {
+          failed.push(sess.title);
+        }
+      }
+      if (selectedSession && ended.some((s) => s.id === selectedSession)) {
+        setSelectedSession(null);
+        setStatusData([]);
+      }
+      await fetchSessions();
+      if (failed.length > 0) {
+        alert(`${ended.length - failed.length}개 삭제 완료. 실패: ${failed.join(", ")}`);
+      }
+    } finally {
+      setDeletingEnded(false);
+    }
+  }
+
+  async function exportAllSessions() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    setExportingAll(true);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      for (const type of ["common", "leader"] as const) {
+        const url = `${API_BASE_URL}/review/export-all?type=${type}`;
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${publicAnonKey}`,
+            "x-user-token": session.access_token,
+          },
+        });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `all_sessions_${type}_${today}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+    } finally {
+      setExportingAll(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background">
@@ -336,21 +400,45 @@ export function AdminReview() {
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Action buttons */}
         {!showStartForm && !showCustomForm && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              onClick={() => setShowStartForm(true)}
-              className="flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
-            >
-              <Play className="w-4 h-4" />
-              부서별 피어리뷰 시작
-            </button>
-            <button
-              onClick={() => setShowCustomForm(true)}
-              className="flex items-center justify-center gap-2 py-3 bg-secondary text-secondary-foreground border border-border rounded-xl font-medium hover:bg-accent transition-colors"
-            >
-              <Users className="w-4 h-4" />
-              프로젝트 팀 세션 만들기
-            </button>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowStartForm(true)}
+                className="flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground rounded-xl font-medium hover:bg-primary/90 transition-colors"
+              >
+                <Play className="w-4 h-4" />
+                부서별 피어리뷰 시작
+              </button>
+              <button
+                onClick={() => setShowCustomForm(true)}
+                className="flex items-center justify-center gap-2 py-3 bg-secondary text-secondary-foreground border border-border rounded-xl font-medium hover:bg-accent transition-colors"
+              >
+                <Users className="w-4 h-4" />
+                프로젝트 팀 세션 만들기
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                onClick={exportAllSessions}
+                disabled={exportingAll || sessions.length === 0}
+                className="flex items-center justify-center gap-2 py-3 border border-border bg-card rounded-xl font-medium hover:bg-accent transition-colors disabled:opacity-50"
+                title="모든 세션의 공통/리더 리뷰를 각각 통합 CSV 2개로 다운로드"
+              >
+                <Download className="w-4 h-4" />
+                {exportingAll ? "다운로드 중..." : "전체 통합 CSV 다운로드"}
+              </button>
+              <button
+                onClick={deleteEndedSessions}
+                disabled={deletingEnded || sessions.filter((s) => !s.active).length === 0}
+                className="flex items-center justify-center gap-2 py-3 border border-destructive/30 text-destructive bg-card rounded-xl font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                title="종료된 세션과 관련 리뷰 데이터를 모두 삭제"
+              >
+                <Trash2 className="w-4 h-4" />
+                {deletingEnded
+                  ? "삭제 중..."
+                  : `종료된 세션 삭제 (${sessions.filter((s) => !s.active).length})`}
+              </button>
+            </div>
           </div>
         )}
 
