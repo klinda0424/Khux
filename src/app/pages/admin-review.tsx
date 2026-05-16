@@ -69,6 +69,7 @@ export function AdminReview() {
   const [exportingAll, setExportingAll] = useState(false);
   const [exportingBatch, setExportingBatch] = useState<string | null>(null);
   const [deletingEnded, setDeletingEnded] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
   const [deletingBatch, setDeletingBatch] = useState<string | null>(null);
 
   useEffect(() => {
@@ -365,6 +366,33 @@ export function AdminReview() {
     }
   }
 
+  async function deleteAllSessions() {
+    if (sessions.length === 0) return;
+    if (!confirm(`전체 세션 ${sessions.length}개를 모두 삭제하시겠습니까?\n진행 중인 세션을 포함한 모든 회차와 관련 리뷰 데이터가 영구 삭제됩니다.`)) return;
+    if (!confirm(`정말로 전체 삭제할까요? 이 작업은 되돌릴 수 없습니다.`)) return;
+
+    setDeletingAll(true);
+    const failed: string[] = [];
+    try {
+      for (const sess of [...sessions]) {
+        try {
+          const res = await apiFetchAuth(`/review/sessions/${sess.id}`, { method: "DELETE" });
+          if (!res.ok) failed.push(`${sess.title}/${sess.team_name}`);
+        } catch {
+          failed.push(`${sess.title}/${sess.team_name}`);
+        }
+      }
+      setSelectedSession(null);
+      setStatusData([]);
+      await fetchSessions();
+      if (failed.length > 0) {
+        alert(`${sessions.length - failed.length}개 삭제 완료. 실패: ${failed.join(", ")}`);
+      }
+    } finally {
+      setDeletingAll(false);
+    }
+  }
+
   async function deleteEndedSessions() {
     const ended = sessions.filter((s) => !s.active);
     if (ended.length === 0) {
@@ -488,17 +516,28 @@ export function AdminReview() {
                 {exportingAll ? "다운로드 중..." : "전체 통합 CSV 다운로드"}
               </button>
               <button
-                onClick={deleteEndedSessions}
-                disabled={deletingEnded || sessions.filter((s) => !s.active).length === 0}
+                onClick={deleteAllSessions}
+                disabled={deletingAll || sessions.length === 0}
                 className="flex items-center justify-center gap-2 py-3 border border-destructive/30 text-destructive bg-card rounded-xl font-medium hover:bg-destructive/10 transition-colors disabled:opacity-50"
-                title="종료된 세션과 관련 리뷰 데이터를 모두 삭제"
+                title="진행 중인 세션 포함 전체 회차/세션과 리뷰 데이터를 모두 삭제"
               >
                 <Trash2 className="w-4 h-4" />
-                {deletingEnded
+                {deletingAll
                   ? "삭제 중..."
-                  : `종료된 세션 삭제 (${sessions.filter((s) => !s.active).length})`}
+                  : `전체 세션 삭제 (${sessions.length})`}
               </button>
             </div>
+            <button
+              onClick={deleteEndedSessions}
+              disabled={deletingEnded || sessions.filter((s) => !s.active).length === 0}
+              className="w-full flex items-center justify-center gap-2 py-2.5 border border-border text-muted-foreground bg-card rounded-xl text-sm hover:bg-accent transition-colors disabled:opacity-50"
+              title="종료된 세션과 관련 리뷰 데이터만 삭제"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deletingEnded
+                ? "삭제 중..."
+                : `종료된 세션만 삭제 (${sessions.filter((s) => !s.active).length})`}
+            </button>
           </div>
         )}
 
