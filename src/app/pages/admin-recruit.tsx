@@ -122,7 +122,7 @@ export function AdminRecruitTab() {
       {/* 상단 액션 */}
       <div className="flex items-center justify-end gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="text-right">
+          <div className="flex flex-col items-end">
             <span className="text-sm font-medium">지원 폼 공개</span>
             <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
           </div>
