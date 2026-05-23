@@ -128,7 +128,7 @@ export function AdminRecruitTab() {
           <ExternalLink className="h-4 w-4" />
           지원서 검토
         </Link>
-        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-card border border-border rounded-lg">
+        <div className="flex items-center gap-2.5 px-4 py-2.5 border border-border rounded-lg">
           <div className="flex flex-col items-end">
             <span className="text-sm font-medium">지원 폼 공개</span>
             <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
