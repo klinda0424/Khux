@@ -330,7 +330,7 @@ export function AdminApplications() {
         </div>
 
         {/* Right: detail panel */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           {selected ? (
             <DetailPanel
               app={applications.find(a => a.id === selected.id) ?? selected}
@@ -407,110 +407,133 @@ function DetailPanel({
 }) {
   const { ymd, hm } = formatDate(app.submittedAt);
   const meta = STATUS_META[app.status];
+  const [memo, setMemo] = useState("");
+  const [memoSaved, setMemoSaved] = useState(false);
+
+  useEffect(() => {
+    setMemo(localStorage.getItem(`interview_memo_${app.id}`) ?? "");
+    setMemoSaved(false);
+  }, [app.id]);
+
+  const handleMemoChange = (val: string) => {
+    setMemo(val);
+    localStorage.setItem(`interview_memo_${app.id}`, val);
+    setMemoSaved(true);
+    setTimeout(() => setMemoSaved(false), 1500);
+  };
 
   return (
-    <div className="p-8 max-w-2xl">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h2 className="text-2xl font-bold">{app.name}</h2>
-            <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${meta.bg} ${meta.color}`}>
-              {meta.symbol} {meta.label}
-            </span>
-            <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${TEAM_COLORS[app.team] ?? "bg-muted text-muted-foreground"}`}>
-              {app.team}
-            </span>
+    <div className="flex h-full">
+
+      {/* 지원서 */}
+      <div className="flex-1 overflow-y-auto p-8">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-2xl font-bold">{app.name}</h2>
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${meta.bg} ${meta.color}`}>
+                {meta.symbol} {meta.label}
+              </span>
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${TEAM_COLORS[app.team] ?? "bg-muted text-muted-foreground"}`}>
+                {app.team}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              제출일시: {ymd} {hm}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            제출일시: {ymd} {hm}
-          </p>
+          <button
+            onClick={() => onDelete(app.id)}
+            className="p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            title="지원서 삭제"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
         </div>
-        <button
-          onClick={() => onDelete(app.id)}
-          className="p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-400/10 transition-colors"
-          title="지원서 삭제"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      </div>
 
-      {/* Basic info grid */}
-      <div className="grid grid-cols-2 gap-3 mb-8">
-        <InfoCell label="학번" value={app.studentId} />
-        <InfoCell label="학과" value={app.major} />
-        <InfoCell
-          label="연락처"
-          value={app.phone}
-          icon={<Phone className="h-3.5 w-3.5" />}
-        />
-        <InfoCell
-          label="이메일"
-          value={app.email}
-          icon={<Mail className="h-3.5 w-3.5" />}
-        />
-      </div>
+        {/* Basic info grid */}
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          <InfoCell label="학번" value={app.studentId} />
+          <InfoCell label="학과" value={app.major} />
+          <InfoCell label="연락처" value={app.phone} icon={<Phone className="h-3.5 w-3.5" />} />
+          <InfoCell label="이메일" value={app.email} icon={<Mail className="h-3.5 w-3.5" />} />
+        </div>
 
-      {/* Divider */}
-      <div className="h-px bg-border mb-8" />
+        <div className="h-px bg-border mb-8" />
 
-      {/* Q&A — dynamic from recruit config questions */}
-      <div className="space-y-6">
-        {questions.map((q) => {
-          const answer = app[q.id];
-          if (!answer) return null;
-          const text = String(answer);
-          if (q.type === "url") {
-            return (
-              <div key={q.id}>
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  {q.label}
-                </p>
-                <a
-                  href={text}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                  {text}
-                </a>
-              </div>
-            );
-          }
-          return <QABlock key={q.id} q={q.label} a={text} />;
-        })}
-      </div>
-
-      {/* Divider */}
-      <div className="h-px bg-border my-8" />
-
-      {/* Status actions */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          상태 변경
-        </p>
-        <div className="flex gap-2">
-          {(["reviewing", "accepted", "rejected"] as const).map(s => {
-            const m = STATUS_META[s];
-            const isActive = app.status === s;
-            return (
-              <button
-                key={s}
-                disabled={updating || isActive}
-                onClick={() => onStatusChange(app.id, s)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
-                  isActive
-                    ? `${m.bg} ${m.color} border-current opacity-100`
-                    : "border-border text-muted-foreground hover:border-border/80 hover:bg-muted/40 disabled:opacity-40"
-                }`}
-              >
-                {m.symbol} {m.label}
-              </button>
-            );
+        {/* Q&A */}
+        <div className="space-y-6">
+          {questions.map((q) => {
+            const answer = app[q.id];
+            if (!answer) return null;
+            const text = String(answer);
+            if (q.type === "url") {
+              return (
+                <div key={q.id}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                    {q.label}
+                  </p>
+                  <a
+                    href={text}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    {text}
+                  </a>
+                </div>
+              );
+            }
+            return <QABlock key={q.id} q={q.label} a={text} />;
           })}
         </div>
+
+        <div className="h-px bg-border my-8" />
+
+        {/* Status actions */}
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            상태 변경
+          </p>
+          <div className="flex gap-2">
+            {(["reviewing", "accepted", "rejected"] as const).map(s => {
+              const m = STATUS_META[s];
+              const isActive = app.status === s;
+              return (
+                <button
+                  key={s}
+                  disabled={updating || isActive}
+                  onClick={() => onStatusChange(app.id, s)}
+                  className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+                    isActive
+                      ? `${m.bg} ${m.color} border-current opacity-100`
+                      : "border-border text-muted-foreground hover:border-border/80 hover:bg-muted/40 disabled:opacity-40"
+                  }`}
+                >
+                  {m.symbol} {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* 면접 메모 */}
+      <div className="w-72 flex-shrink-0 border-l border-border flex flex-col p-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">면접 메모</p>
+          {memoSaved && <span className="text-xs text-emerald-500 font-medium">저장됨</span>}
+        </div>
+        <textarea
+          value={memo}
+          onChange={(e) => handleMemoChange(e.target.value)}
+          placeholder={"면접 중 메모를 남겨보세요.\n자동으로 저장됩니다."}
+          className="flex-1 resize-none text-sm bg-muted/30 border border-border rounded-xl p-4 focus:outline-none focus:ring-1 focus:ring-primary/30 focus:border-primary leading-relaxed"
+        />
+      </div>
+
     </div>
   );
 }
