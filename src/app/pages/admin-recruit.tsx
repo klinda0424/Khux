@@ -163,14 +163,43 @@ export function AdminRecruitTab() {
       {/* 모집 일정 */}
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">모집 일정</h3>
-        <ScheduleCalendar
-          applicationStart={config.applicationStart}
-          applicationEnd={config.applicationEnd}
-          interviewStart={config.interviewStart}
-          interviewEnd={config.interviewEnd}
-          resultDate={config.resultDate}
-          onChange={(updates) => setConfig((prev) => ({ ...prev, ...updates }))}
-        />
+        <div className="flex bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex-1 space-y-4 p-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">지원 기간</label>
+              <div className="flex items-center gap-3">
+                <input type="date" value={config.applicationStart}
+                  onChange={(e) => setConfig({ ...config, applicationStart: e.target.value })} className={INPUT_CLASS} />
+                <span className="text-muted-foreground shrink-0">~</span>
+                <input type="date" value={config.applicationEnd}
+                  onChange={(e) => setConfig({ ...config, applicationEnd: e.target.value })} className={INPUT_CLASS} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">면접 일정</label>
+              <div className="flex items-center gap-3">
+                <input type="date" value={config.interviewStart}
+                  onChange={(e) => setConfig({ ...config, interviewStart: e.target.value })} className={INPUT_CLASS} />
+                <span className="text-muted-foreground shrink-0">~</span>
+                <input type="date" value={config.interviewEnd}
+                  onChange={(e) => setConfig({ ...config, interviewEnd: e.target.value })} className={INPUT_CLASS} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">결과 발표</label>
+              <input type="date" value={config.resultDate}
+                onChange={(e) => setConfig({ ...config, resultDate: e.target.value })} className={INPUT_CLASS} />
+            </div>
+          </div>
+          <div className="w-px bg-border shrink-0" />
+          <ScheduleCalendar
+            applicationStart={config.applicationStart}
+            applicationEnd={config.applicationEnd}
+            interviewStart={config.interviewStart}
+            interviewEnd={config.interviewEnd}
+            resultDate={config.resultDate}
+          />
+        </div>
       </section>
 
       {/* 기본 정보 항목 */}
@@ -341,32 +370,27 @@ export function AdminRecruitTab() {
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 const DAY_NAMES = ["일","월","화","수","목","금","토"];
 
-type EditMode = "apply" | "interview" | "result";
-
-const MODES = [
-  { key: "apply"     as EditMode, label: "지원 기간", active: "bg-primary/15 text-primary",     dot: "bg-primary/20",      text: "text-primary" },
-  { key: "interview" as EditMode, label: "면접 일정", active: "bg-amber-400/15 text-amber-500", dot: "bg-amber-400/20",    text: "text-amber-500" },
-  { key: "result"    as EditMode, label: "결과 발표", active: "bg-emerald-400/15 text-emerald-500", dot: "bg-emerald-400/25", text: "text-emerald-500" },
-];
-
 function ScheduleCalendar({
   applicationStart, applicationEnd,
   interviewStart, interviewEnd,
   resultDate,
-  onChange,
 }: {
   applicationStart: string; applicationEnd: string;
   interviewStart: string; interviewEnd: string;
   resultDate: string;
-  onChange: (updates: Partial<RecruitConfig>) => void;
 }) {
   const initYM = () => {
     const d = applicationStart ? new Date(applicationStart + "T00:00:00") : new Date();
     return { year: d.getFullYear(), month: d.getMonth() };
   };
   const [{ year, month }, setYM] = useState(initYM);
-  const [editMode, setEditMode] = useState<EditMode>("apply");
-  const [pendingStart, setPendingStart] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (applicationStart) {
+      const d = new Date(applicationStart + "T00:00:00");
+      setYM({ year: d.getFullYear(), month: d.getMonth() });
+    }
+  }, [applicationStart]);
 
   const prev = () => setYM(({ year, month }) =>
     month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
@@ -377,69 +401,21 @@ function ScheduleCalendar({
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const toYmd = (d: number) => `${year}-${pad(month + 1)}-${pad(d)}`;
-  const fmt = (ymd: string) => {
-    if (!ymd) return "—";
-    const [y, m, d] = ymd.split("-");
-    return `${y}.${m}.${d}`;
-  };
-
-  const handleDayClick = (ymd: string) => {
-    if (editMode === "result") {
-      onChange({ resultDate: ymd });
-      return;
-    }
-    if (!pendingStart) {
-      setPendingStart(ymd);
-    } else if (ymd >= pendingStart) {
-      if (editMode === "apply") onChange({ applicationStart: pendingStart, applicationEnd: ymd });
-      else onChange({ interviewStart: pendingStart, interviewEnd: ymd });
-      setPendingStart(null);
-    } else {
-      setPendingStart(ymd);
-    }
-  };
-
-  const switchMode = (mode: EditMode) => {
-    setEditMode(mode);
-    setPendingStart(null);
-  };
-
-  const firstDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   const getDayClass = (ymd: string) => {
-    if (pendingStart === ymd) return "ring-2 ring-inset ring-primary bg-primary/30 text-primary font-bold";
     if (resultDate === ymd) return "bg-emerald-400/25 text-emerald-500 font-bold";
     if (applicationStart && applicationEnd && ymd >= applicationStart && ymd <= applicationEnd)
       return "bg-primary/20 text-primary font-semibold";
     if (interviewStart && interviewEnd && ymd >= interviewStart && ymd <= interviewEnd)
       return "bg-amber-400/20 text-amber-500 font-semibold";
-    return "text-foreground/70 hover:bg-muted/60";
+    return "text-foreground/70";
   };
 
-  const instruction = editMode === "result"
-    ? "날짜를 클릭해 발표일을 설정하세요"
-    : pendingStart
-      ? "종료일을 클릭하세요"
-      : "시작일을 클릭하세요";
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
   return (
-    <div className="p-6 bg-card border border-border rounded-xl">
-      {/* 모드 탭 */}
-      <div className="flex gap-1.5 mb-4">
-        {MODES.map(({ key, label, active }) => (
-          <button key={key} onClick={() => switchMode(key)}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition-colors ${
-              editMode === key ? active : "text-muted-foreground hover:bg-muted/50"
-            }`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* 안내 문구 */}
-      <p className="text-xs text-muted-foreground text-center mb-4">{instruction}</p>
-
+    <div className="p-5 w-64 shrink-0 flex flex-col justify-between">
       {/* 월 네비게이션 */}
       <div className="flex items-center justify-between mb-3">
         <button onClick={prev} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
@@ -451,37 +427,36 @@ function ScheduleCalendar({
         </button>
       </div>
 
-      {/* 요일 헤더 */}
+      {/* 요일 */}
       <div className="grid grid-cols-7 mb-1">
         {DAY_NAMES.map(d => (
-          <div key={d} className="text-center text-xs text-muted-foreground/60 py-0.5">{d}</div>
+          <div key={d} className="text-center text-[10px] text-muted-foreground/60 py-0.5">{d}</div>
         ))}
       </div>
 
       {/* 날짜 그리드 */}
-      <div className="grid grid-cols-7 gap-y-0.5">
+      <div className="grid grid-cols-7 gap-y-0.5 flex-1">
         {Array.from({ length: firstDow }).map((_, i) => <div key={`e${i}`} />)}
         {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
           const ymd = toYmd(d);
           return (
-            <button key={d} onClick={() => handleDayClick(ymd)}
-              className={`aspect-square flex items-center justify-center text-xs rounded-md transition-colors cursor-pointer ${getDayClass(ymd)}`}>
+            <div key={d} className={`aspect-square flex items-center justify-center text-[11px] rounded-md ${getDayClass(ymd)}`}>
               {d}
-            </button>
+            </div>
           );
         })}
       </div>
 
-      {/* 날짜 요약 */}
-      <div className="mt-4 pt-4 border-t border-border space-y-2">
+      {/* 범례 */}
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-3">
         {[
-          { label: "지원 기간", text: applicationStart && applicationEnd ? `${fmt(applicationStart)} ~ ${fmt(applicationEnd)}` : "—", color: "text-primary" },
-          { label: "면접 일정", text: interviewStart && interviewEnd ? `${fmt(interviewStart)} ~ ${fmt(interviewEnd)}` : "—", color: "text-amber-500" },
-          { label: "결과 발표", text: resultDate ? fmt(resultDate) : "—", color: "text-emerald-500" },
-        ].map(({ label, text, color }) => (
-          <div key={label} className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">{label}</span>
-            <span className={`font-medium ${color}`}>{text}</span>
+          { label: "지원",  cls: "bg-primary/20" },
+          { label: "면접",  cls: "bg-amber-400/20" },
+          { label: "결과",  cls: "bg-emerald-400/25" },
+        ].map(({ label, cls }) => (
+          <div key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <div className={`w-2.5 h-2.5 rounded-sm shrink-0 ${cls}`} />
+            {label}
           </div>
         ))}
       </div>
