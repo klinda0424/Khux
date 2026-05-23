@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react";
+import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Link } from "react-router";
 import { apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
 import type { RecruitConfig, RecruitQuestion, RecruitBasicField } from "../types/recruit-config";
@@ -330,6 +331,13 @@ export function AdminRecruitTab() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           저장
         </button>
+        <Link
+          to="/admin/applications"
+          className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors font-medium"
+        >
+          <ExternalLink className="h-4 w-4" />
+          지원서 검토
+        </Link>
         {saved && <span className="text-sm text-emerald-600 font-medium">저장되었습니다!</span>}
         <button onClick={loadConfig}
           className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors ml-auto">
