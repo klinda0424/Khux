@@ -119,6 +119,17 @@ export function AdminRecruitTab() {
   return (
     <div className="space-y-8 pb-12">
 
+      {/* 상단 액션 */}
+      <div className="flex justify-end">
+        <Link
+          to="/admin/applications"
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
+        >
+          <ExternalLink className="h-4 w-4" />
+          지원서 검토
+        </Link>
+      </div>
+
       {/* 기본 설정 */}
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">기본 설정</h3>
@@ -334,13 +345,6 @@ export function AdminRecruitTab() {
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           저장
         </button>
-        <Link
-          to="/admin/applications"
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
-        >
-          <ExternalLink className="h-4 w-4" />
-          지원서 검토
-        </Link>
         {saved && <span className="text-sm text-emerald-600 font-medium">저장되었습니다!</span>}
         <button onClick={loadConfig}
           className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-muted transition-colors ml-auto">
