@@ -122,7 +122,10 @@ export function AdminRecruitTab() {
       {/* 상단 액션 */}
       <div className="flex items-center justify-end gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="text-sm font-medium">지원 폼 공개</span>
+          <div className="text-right">
+            <span className="text-sm font-medium">지원 폼 공개</span>
+            <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
+          </div>
           <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
             className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
@@ -153,16 +156,6 @@ export function AdminRecruitTab() {
               onChange={(e) => setConfig({ ...config, description: e.target.value })}
               className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none"
               placeholder="UX/UI에 관심 있는 경희대학교 학생이라면 누구나 지원 가능합니다." />
-          </div>
-          <div className="flex items-center justify-between py-1">
-            <div>
-              <p className="text-sm font-medium">지원 폼 공개</p>
-              <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
-            </div>
-            <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
           </div>
         </div>
       </section>
