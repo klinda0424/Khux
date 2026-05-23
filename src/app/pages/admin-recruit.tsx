@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react";
 import { apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
 import type { RecruitConfig, RecruitQuestion, RecruitBasicField } from "../types/recruit-config";
@@ -192,8 +192,13 @@ export function AdminRecruitTab() {
         </div>
         <div className="space-y-2">
           {config.basicFields.map((f) => (
-            <div key={f.id} className={`flex items-center gap-3 px-4 py-3 bg-card border rounded-lg transition-opacity ${f.visible ? "border-border" : "border-border/40 opacity-50"}`}>
-              <div className="flex-1 space-y-1">
+            <div key={f.id}
+              onClick={() => updateBasicField(f.id, "visible", !f.visible)}
+              className={`flex items-center gap-3 px-4 py-3 bg-card border rounded-lg cursor-pointer transition-opacity ${f.visible ? "border-border" : "border-border/40 opacity-50"}`}>
+              <div className="text-muted-foreground shrink-0">
+                {f.visible ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+              </div>
+              <div className="flex-1 space-y-1" onClick={(e) => e.stopPropagation()}>
                 <input type="text" value={f.label}
                   onChange={(e) => updateBasicField(f.id, "label", e.target.value)}
                   className="text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full" />
@@ -204,7 +209,7 @@ export function AdminRecruitTab() {
                     placeholder="예시 텍스트" />
                 )}
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                 {f.type !== "select" && (
                   <select value={f.type}
                     onChange={(e) => updateBasicField(f.id, "type", e.target.value)}
@@ -214,16 +219,14 @@ export function AdminRecruitTab() {
                     <option value="email">이메일</option>
                   </select>
                 )}
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input type="checkbox" checked={f.required}
-                    onChange={(e) => updateBasicField(f.id, "required", e.target.checked)} className="rounded" />
-                  필수
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input type="checkbox" checked={f.visible}
-                    onChange={(e) => updateBasicField(f.id, "visible", e.target.checked)} className="rounded" />
-                  표시
-                </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground">필수</span>
+                  <button type="button"
+                    onClick={() => updateBasicField(f.id, "required", !f.required)}
+                    className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${f.required ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                    <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${f.required ? "translate-x-3.5" : "translate-x-0.5"}`} />
+                  </button>
+                </div>
                 {f.deletable && (
                   <button onClick={() => deleteBasicField(f.id)}
                     className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
@@ -249,8 +252,9 @@ export function AdminRecruitTab() {
         <div className="space-y-3">
           {config.questions.map((q, i) => (
             <div key={q.id}
-              className={`p-4 bg-card border rounded-xl space-y-3 transition-opacity ${q.visible ? "border-border" : "border-border/40 opacity-60"}`}>
-              <div className="flex items-start gap-2">
+              onClick={() => updateQuestion(q.id, "visible", !q.visible)}
+              className={`p-4 bg-card border rounded-xl space-y-3 cursor-pointer transition-opacity ${q.visible ? "border-border" : "border-border/40 opacity-60"}`}>
+              <div className="flex items-start gap-2" onClick={(e) => e.stopPropagation()}>
                 {/* 순서 변경 */}
                 <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
                   <button onClick={() => moveQuestion(i, -1)} disabled={i === 0}
@@ -270,16 +274,14 @@ export function AdminRecruitTab() {
 
                 {/* 옵션 */}
                 <div className="flex items-center gap-3 shrink-0">
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                    <input type="checkbox" checked={q.required}
-                      onChange={(e) => updateQuestion(q.id, "required", e.target.checked)} className="rounded" />
-                    필수
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                    <input type="checkbox" checked={q.visible}
-                      onChange={(e) => updateQuestion(q.id, "visible", e.target.checked)} className="rounded" />
-                    표시
-                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">필수</span>
+                    <button type="button"
+                      onClick={() => updateQuestion(q.id, "required", !q.required)}
+                      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${q.required ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${q.required ? "translate-x-3.5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
                   <select value={q.type}
                     onChange={(e) => updateQuestion(q.id, "type", e.target.value as RecruitQuestion["type"])}
                     className="text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none">
@@ -296,19 +298,26 @@ export function AdminRecruitTab() {
                 </div>
               </div>
 
-              <input type="text" value={q.placeholder}
-                onChange={(e) => updateQuestion(q.id, "placeholder", e.target.value)}
-                className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                placeholder="플레이스홀더 텍스트" />
+              <div onClick={(e) => e.stopPropagation()}>
+                <input type="text" value={q.placeholder}
+                  onChange={(e) => updateQuestion(q.id, "placeholder", e.target.value)}
+                  className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                  placeholder="플레이스홀더 텍스트" />
 
-              {q.type === "textarea" && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>줄 수</span>
-                  <input type="number" value={q.rows ?? 4} min={2} max={12}
-                    onChange={(e) => updateQuestion(q.id, "rows", Number(e.target.value))}
-                    className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
-                </div>
-              )}
+                {q.type === "textarea" && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
+                    <span>줄 수</span>
+                    <input type="number" value={q.rows ?? 4} min={2} max={12}
+                      onChange={(e) => updateQuestion(q.id, "rows", Number(e.target.value))}
+                      className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end text-xs text-muted-foreground gap-1 items-center">
+                {q.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                {q.visible ? "표시됨" : "숨겨짐"}
+              </div>
             </div>
           ))}
         </div>
