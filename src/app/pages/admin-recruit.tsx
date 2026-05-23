@@ -120,7 +120,14 @@ export function AdminRecruitTab() {
     <div className="space-y-8 pb-12">
 
       {/* 상단 액션 */}
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center gap-2.5">
+          <span className="text-sm font-medium">지원 폼 공개</span>
+          <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
         <Link
           to="/admin/applications"
           className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
