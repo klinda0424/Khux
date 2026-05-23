@@ -163,8 +163,8 @@ export function AdminRecruitTab() {
       {/* 모집 일정 */}
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">모집 일정</h3>
-        <div className="flex gap-4 items-start">
-          <div className="flex-1 space-y-4 p-6 bg-card border border-border rounded-xl">
+        <div className="flex bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex-1 space-y-4 p-6">
             <div>
               <label className="block text-sm font-medium mb-2">지원 기간</label>
               <div className="flex items-center gap-3">
@@ -191,6 +191,7 @@ export function AdminRecruitTab() {
                 onChange={(e) => setConfig({ ...config, resultDate: e.target.value })} className={INPUT_CLASS} />
             </div>
           </div>
+          <div className="w-px bg-border shrink-0" />
           <ScheduleCalendar
             applicationStart={config.applicationStart}
             applicationEnd={config.applicationEnd}
@@ -424,7 +425,7 @@ function ScheduleCalendar({
   };
 
   return (
-    <div className="p-4 bg-card border border-border rounded-xl shrink-0 w-64">
+    <div className="p-6 shrink-0 w-64 flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <button onClick={prev} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
