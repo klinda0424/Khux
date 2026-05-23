@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink } from "lucide-react";
+import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router";
 import { apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
@@ -163,32 +163,41 @@ export function AdminRecruitTab() {
       {/* 모집 일정 */}
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">모집 일정</h3>
-        <div className="space-y-4 p-6 bg-card border border-border rounded-xl">
-          <div>
-            <label className="block text-sm font-medium mb-2">지원 기간</label>
-            <div className="flex items-center gap-3">
-              <input type="date" value={config.applicationStart}
-                onChange={(e) => setConfig({ ...config, applicationStart: e.target.value })} className={INPUT_CLASS} />
-              <span className="text-muted-foreground shrink-0">~</span>
-              <input type="date" value={config.applicationEnd}
-                onChange={(e) => setConfig({ ...config, applicationEnd: e.target.value })} className={INPUT_CLASS} />
+        <div className="flex gap-4 items-start">
+          <div className="flex-1 space-y-4 p-6 bg-card border border-border rounded-xl">
+            <div>
+              <label className="block text-sm font-medium mb-2">지원 기간</label>
+              <div className="flex items-center gap-3">
+                <input type="date" value={config.applicationStart}
+                  onChange={(e) => setConfig({ ...config, applicationStart: e.target.value })} className={INPUT_CLASS} />
+                <span className="text-muted-foreground shrink-0">~</span>
+                <input type="date" value={config.applicationEnd}
+                  onChange={(e) => setConfig({ ...config, applicationEnd: e.target.value })} className={INPUT_CLASS} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">면접 일정</label>
+              <div className="flex items-center gap-3">
+                <input type="date" value={config.interviewStart}
+                  onChange={(e) => setConfig({ ...config, interviewStart: e.target.value })} className={INPUT_CLASS} />
+                <span className="text-muted-foreground shrink-0">~</span>
+                <input type="date" value={config.interviewEnd}
+                  onChange={(e) => setConfig({ ...config, interviewEnd: e.target.value })} className={INPUT_CLASS} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">결과 발표</label>
+              <input type="date" value={config.resultDate}
+                onChange={(e) => setConfig({ ...config, resultDate: e.target.value })} className={INPUT_CLASS} />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">면접 일정</label>
-            <div className="flex items-center gap-3">
-              <input type="date" value={config.interviewStart}
-                onChange={(e) => setConfig({ ...config, interviewStart: e.target.value })} className={INPUT_CLASS} />
-              <span className="text-muted-foreground shrink-0">~</span>
-              <input type="date" value={config.interviewEnd}
-                onChange={(e) => setConfig({ ...config, interviewEnd: e.target.value })} className={INPUT_CLASS} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">결과 발표</label>
-            <input type="date" value={config.resultDate}
-              onChange={(e) => setConfig({ ...config, resultDate: e.target.value })} className={INPUT_CLASS} />
-          </div>
+          <ScheduleCalendar
+            applicationStart={config.applicationStart}
+            applicationEnd={config.applicationEnd}
+            interviewStart={config.interviewStart}
+            interviewEnd={config.interviewEnd}
+            resultDate={config.resultDate}
+          />
         </div>
       </section>
 
@@ -350,6 +359,114 @@ export function AdminRecruitTab() {
           <RefreshCw className="h-4 w-4" />
           새로고침
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 모집 일정 달력 ─────────────────────────────────────────────────────────────
+
+const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+const DAY_NAMES = ["일","월","화","수","목","금","토"];
+
+function ScheduleCalendar({
+  applicationStart, applicationEnd,
+  interviewStart, interviewEnd,
+  resultDate,
+}: {
+  applicationStart: string; applicationEnd: string;
+  interviewStart: string; interviewEnd: string;
+  resultDate: string;
+}) {
+  const initDate = () => {
+    const d = applicationStart ? new Date(applicationStart + "T00:00:00") : new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  };
+  const [{ year, month }, setYM] = useState(initDate);
+
+  useEffect(() => {
+    if (applicationStart) {
+      const d = new Date(applicationStart + "T00:00:00");
+      setYM({ year: d.getFullYear(), month: d.getMonth() });
+    }
+  }, [applicationStart]);
+
+  const prev = () => setYM(({ year, month }) =>
+    month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
+  );
+  const next = () => setYM(({ year, month }) =>
+    month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 }
+  );
+
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const toYmd = (d: number) => `${year}-${pad(month + 1)}-${pad(d)}`;
+
+  const getType = (ymd: string) => {
+    if (resultDate && ymd === resultDate) return "result";
+    if (applicationStart && applicationEnd && ymd >= applicationStart && ymd <= applicationEnd) return "apply";
+    if (interviewStart && interviewEnd && ymd >= interviewStart && ymd <= interviewEnd) return "interview";
+    return null;
+  };
+
+  const cells: { d: number; ymd: string; type: string | null }[] = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ymd = toYmd(d);
+    cells.push({ d, ymd, type: getType(ymd) });
+  }
+
+  const TYPE_CLASS: Record<string, string> = {
+    apply:     "bg-primary/20 text-primary font-semibold",
+    interview: "bg-amber-400/20 text-amber-500 font-semibold",
+    result:    "bg-emerald-400/25 text-emerald-500 font-bold",
+  };
+
+  return (
+    <div className="p-4 bg-card border border-border rounded-xl shrink-0 w-64">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prev} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold">{year}년 {MONTH_NAMES[month]}</span>
+        <button onClick={next} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* 요일 */}
+      <div className="grid grid-cols-7 mb-1">
+        {DAY_NAMES.map(d => (
+          <div key={d} className="text-center text-xs text-muted-foreground/60 py-0.5">{d}</div>
+        ))}
+      </div>
+
+      {/* 날짜 */}
+      <div className="grid grid-cols-7 gap-y-0.5">
+        {Array.from({ length: firstDow }).map((_, i) => <div key={`e${i}`} />)}
+        {cells.map(({ d, type }) => (
+          <div key={d} className={`aspect-square flex items-center justify-center text-xs rounded-md transition-colors ${
+            type ? TYPE_CLASS[type] : "text-foreground/70"
+          }`}>
+            {d}
+          </div>
+        ))}
+      </div>
+
+      {/* 범례 */}
+      <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+        {[
+          { type: "apply",     label: "지원 기간",  cls: "bg-primary/20" },
+          { type: "interview", label: "면접 일정",  cls: "bg-amber-400/20" },
+          { type: "result",    label: "결과 발표",  cls: "bg-emerald-400/25" },
+        ].map(({ label, cls }) => (
+          <div key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
+            <div className={`w-3 h-3 rounded-sm shrink-0 ${cls}`} />
+            {label}
+          </div>
+        ))}
       </div>
     </div>
   );
