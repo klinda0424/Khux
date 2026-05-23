@@ -270,18 +270,6 @@ export function AdminRecruitTab() {
               onClick={() => updateQuestion(q.id, "visible", !q.visible)}
               className={`p-4 bg-card border rounded-xl space-y-3 cursor-pointer transition-opacity ${q.visible ? "border-border" : "border-border/40 opacity-60"}`}>
               <div className="flex items-start gap-2" onClick={(e) => e.stopPropagation()}>
-                {/* 순서 변경 */}
-                <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
-                  <button onClick={() => moveQuestion(i, -1)} disabled={i === 0}
-                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button onClick={() => moveQuestion(i, 1)} disabled={i === config.questions.length - 1}
-                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
                 {/* 라벨 */}
                 <input type="text" value={q.label}
                   onChange={(e) => updateQuestion(q.id, "label", e.target.value)}
@@ -304,6 +292,17 @@ export function AdminRecruitTab() {
                     <option value="text">단문</option>
                     <option value="url">링크</option>
                   </select>
+                  {/* 순서 변경 */}
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button onClick={() => moveQuestion(i, -1)} disabled={i === 0}
+                      className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => moveQuestion(i, 1)} disabled={i === config.questions.length - 1}
+                      className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   {q.deletable && (
                     <button onClick={() => deleteQuestion(q.id)}
                       className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
