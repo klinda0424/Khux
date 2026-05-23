@@ -521,7 +521,7 @@ function DetailPanel({
       </div>
 
       {/* 면접 메모 */}
-      <div className="w-72 flex-shrink-0 border-l border-border flex flex-col p-5">
+      <div className="w-96 flex-shrink-0 border-l border-border flex flex-col p-5">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">면접 메모</p>
           {memoSaved && <span className="text-xs text-emerald-500 font-medium">저장됨</span>}
