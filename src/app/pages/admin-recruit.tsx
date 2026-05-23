@@ -425,7 +425,7 @@ function ScheduleCalendar({
   };
 
   return (
-    <div className="p-6 shrink-0 w-64 flex flex-col">
+    <div className="p-6 shrink-0 w-80 flex flex-col">
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-3">
         <button onClick={prev} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
@@ -457,14 +457,14 @@ function ScheduleCalendar({
       </div>
 
       {/* 범례 */}
-      <div className="mt-3 pt-3 border-t border-border space-y-1.5">
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-3">
         {[
-          { type: "apply",     label: "지원 기간",  cls: "bg-primary/20" },
-          { type: "interview", label: "면접 일정",  cls: "bg-amber-400/20" },
-          { type: "result",    label: "결과 발표",  cls: "bg-emerald-400/25" },
+          { label: "지원 기간", cls: "bg-primary/20" },
+          { label: "면접 일정", cls: "bg-amber-400/20" },
+          { label: "결과 발표", cls: "bg-emerald-400/25" },
         ].map(({ label, cls }) => (
-          <div key={label} className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className={`w-3 h-3 rounded-sm shrink-0 ${cls}`} />
+          <div key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <div className={`w-2.5 h-2.5 rounded-sm shrink-0 ${cls}`} />
             {label}
           </div>
         ))}
