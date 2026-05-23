@@ -120,7 +120,14 @@ export function AdminRecruitTab() {
     <div className="space-y-8 pb-12">
 
       {/* 상단 액션 */}
-      <div className="flex items-center justify-end gap-3">
+      <div className="flex items-center justify-between">
+        <Link
+          to="/admin/applications"
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
+        >
+          <ExternalLink className="h-4 w-4" />
+          지원서 검토
+        </Link>
         <div className="flex items-center gap-2.5">
           <div className="flex flex-col items-end">
             <span className="text-sm font-medium">지원 폼 공개</span>
@@ -131,13 +138,6 @@ export function AdminRecruitTab() {
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
           </button>
         </div>
-        <Link
-          to="/admin/applications"
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
-        >
-          <ExternalLink className="h-4 w-4" />
-          지원서 검토
-        </Link>
       </div>
 
       {/* 기본 설정 */}
