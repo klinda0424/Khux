@@ -825,4 +825,271 @@ app.post("/make-server-d0140d55/init-sample-data", async (c) => {
   }
 });
 
+// ============ Discord / Members Only ============
+
+const DISCORD_CLIENT_ID = "1487816060777533532";
+const DISCORD_GUILD_ID = "1469604778496757783";
+const DISCORD_REDIRECT_URI = "https://khux.vercel.app/auth/discord/callback";
+
+const TEAM_ROLES: Record<string, { name: string; role_id: string }> = {
+  operation: { name: "Operation", role_id: "1476978398890033212" },
+  education: { name: "Education", role_id: "1476976964274356457" },
+  growth_brand: { name: "Growth-Brand", role_id: "1476977815709552713" },
+  growth_pr: { name: "Growth-PR", role_id: "1476977666073559204" },
+};
+
+async function getReviewUser(token: string | undefined) {
+  if (!token) return null;
+  const session = await kv.get(`discord_session:${token}`);
+  if (!session) return null;
+  if (new Date(session.expires_at) < new Date()) {
+    await kv.del(`discord_session:${token}`);
+    return null;
+  }
+  return session;
+}
+
+// Exchange Discord OAuth code for session token
+app.post("/make-server-d0140d55/discord/auth", async (c) => {
+  try {
+    const { code } = await c.req.json();
+    if (!code) return c.json({ error: "Authorization code required" }, 400);
+
+    const clientSecret = Deno.env.get("DISCORD_CLIENT_SECRET");
+    if (!clientSecret) return c.json({ error: "Server configuration error" }, 500);
+
+    const tokenRes = await fetch("https://discord.com/api/v10/oauth2/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: DISCORD_CLIENT_ID,
+        client_secret: clientSecret,
+        grant_type: "authorization_code",
+        code,
+        redirect_uri: DISCORD_REDIRECT_URI,
+      }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenRes.ok) return c.json({ error: "Discord authentication failed" }, 401);
+
+    const userRes = await fetch("https://discord.com/api/v10/users/@me", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const userData = await userRes.json();
+    if (!userRes.ok) return c.json({ error: "Failed to get Discord user info" }, 401);
+
+    const memberRes = await fetch(
+      `https://discord.com/api/v10/users/@me/guilds/${DISCORD_GUILD_ID}/member`,
+      { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
+    );
+    const memberData = await memberRes.json();
+
+    let team = "";
+    let teamName = "";
+    let isLeader = false;
+    if (memberRes.ok && memberData.roles) {
+      for (const [key, config] of Object.entries(TEAM_ROLES)) {
+        if (memberData.roles.includes(config.role_id)) {
+          team = key;
+          teamName = config.name;
+          break;
+        }
+      }
+      const nick = memberData.nick || userData.global_name || userData.username;
+      isLeader = nick?.includes("Leader") ?? false;
+    }
+
+    const displayName = memberData.nick || userData.global_name || userData.username;
+    const sessionToken = crypto.randomUUID();
+    const expires = new Date();
+    expires.setDate(expires.getDate() + 7);
+
+    const sessionData = {
+      discord_id: userData.id,
+      display_name: displayName,
+      avatar: userData.avatar
+        ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
+        : null,
+      team,
+      team_name: teamName,
+      is_leader: isLeader,
+      expires_at: expires.toISOString(),
+    };
+
+    await kv.set(`discord_session:${sessionToken}`, sessionData);
+    return c.json({ token: sessionToken, user: sessionData });
+  } catch (error) {
+    console.log(`Discord auth error: ${error}`);
+    return c.json({ error: "Authentication failed" }, 500);
+  }
+});
+
+app.get("/make-server-d0140d55/discord/me", async (c) => {
+  const user = await getReviewUser(c.req.header("x-review-token"));
+  if (!user) return c.json({ error: "Not authenticated" }, 401);
+  return c.json({ user });
+});
+
+app.post("/make-server-d0140d55/discord/logout", async (c) => {
+  const token = c.req.header("x-review-token");
+  if (token) await kv.del(`discord_session:${token}`);
+  return c.json({ success: true });
+});
+
+// ============ When To Meet ============
+
+// GET /when-to-meet/members — all guild members grouped by role
+app.get("/make-server-d0140d55/when-to-meet/members", async (c) => {
+  const user = await getReviewUser(c.req.header("x-review-token"));
+  if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+  try {
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    // Paginate through guild members
+    const allMembers: any[] = [];
+    let after = "0";
+    while (true) {
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
+        { headers: { Authorization: `Bot ${botToken}` } }
+      );
+      if (!res.ok) break;
+      const batch: any[] = await res.json();
+      if (batch.length === 0) break;
+      allMembers.push(...batch);
+      if (batch.length < 1000) break;
+      after = batch[batch.length - 1].user.id;
+    }
+
+    // Group by team role
+    const grouped: Record<string, { discord_id: string; display_name: string; avatar: string | null; is_leader: boolean }[]> = {};
+    for (const [key, config] of Object.entries(TEAM_ROLES)) {
+      grouped[key] = [];
+    }
+    grouped["other"] = [];
+
+    for (const m of allMembers) {
+      if (m.user?.bot) continue;
+      const displayName = m.nick || m.user?.global_name || m.user?.username || "Unknown";
+      const avatar = m.user?.avatar
+        ? `https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png`
+        : null;
+      const isLeader = displayName.includes("Leader");
+
+      let assigned = false;
+      for (const [key, config] of Object.entries(TEAM_ROLES)) {
+        if (m.roles?.includes(config.role_id)) {
+          grouped[key].push({ discord_id: m.user.id, display_name: displayName, avatar, is_leader: isLeader });
+          assigned = true;
+          break;
+        }
+      }
+      if (!assigned) grouped["other"].push({ discord_id: m.user.id, display_name: displayName, avatar, is_leader: isLeader });
+    }
+
+    // Remove empty other group
+    if (grouped["other"].length === 0) delete grouped["other"];
+
+    // Attach each member's saved schedule summary
+    const result: Record<string, any[]> = {};
+    for (const [team, members] of Object.entries(grouped)) {
+      result[team] = await Promise.all(
+        members.map(async (m) => {
+          const schedule = await kv.get(`wtm_schedule:${m.discord_id}`);
+          return { ...m, has_schedule: !!schedule };
+        })
+      );
+    }
+
+    return c.json({ teams: TEAM_ROLES, members: result });
+  } catch (error) {
+    console.log(`when-to-meet members error: ${error}`);
+    return c.json({ error: "Failed to fetch members" }, 500);
+  }
+});
+
+// GET /when-to-meet/schedule/:discordId — get a member's schedule
+app.get("/make-server-d0140d55/when-to-meet/schedule/:discordId", async (c) => {
+  const user = await getReviewUser(c.req.header("x-review-token"));
+  if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+  const discordId = c.req.param("discordId");
+  const schedule = await kv.get(`wtm_schedule:${discordId}`);
+  return c.json({ schedule: schedule ?? null });
+});
+
+// POST /when-to-meet/schedule — save current user's schedule
+app.post("/make-server-d0140d55/when-to-meet/schedule", async (c) => {
+  const user = await getReviewUser(c.req.header("x-review-token"));
+  if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+  try {
+    const { availability } = await c.req.json();
+    // availability: { "2024-01-15": [9, 10, 14, 15], ... }
+    if (!availability || typeof availability !== "object") {
+      return c.json({ error: "availability object required" }, 400);
+    }
+
+    const data = {
+      discord_id: user.discord_id,
+      display_name: user.display_name,
+      availability,
+      updated_at: new Date().toISOString(),
+    };
+    await kv.set(`wtm_schedule:${user.discord_id}`, data);
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`when-to-meet schedule save error: ${error}`);
+    return c.json({ error: "Failed to save schedule" }, 500);
+  }
+});
+
+// POST /when-to-meet/dm — send Discord DMs to selected members
+app.post("/make-server-d0140d55/when-to-meet/dm", async (c) => {
+  const user = await getReviewUser(c.req.header("x-review-token"));
+  if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+  try {
+    const { discord_ids, message } = await c.req.json();
+    if (!discord_ids || !Array.isArray(discord_ids) || !message) {
+      return c.json({ error: "discord_ids array and message required" }, 400);
+    }
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    const sent: string[] = [];
+    const failed: string[] = [];
+
+    for (const discordId of discord_ids) {
+      try {
+        const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
+          method: "POST",
+          headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ recipient_id: discordId }),
+        });
+        if (!dmRes.ok) { failed.push(discordId); continue; }
+        const dmChannel = await dmRes.json();
+
+        const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+          method: "POST",
+          headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ content: message }),
+        });
+        if (msgRes.ok) sent.push(discordId);
+        else failed.push(discordId);
+      } catch {
+        failed.push(discordId);
+      }
+    }
+
+    return c.json({ success: true, sent, failed });
+  } catch (error) {
+    console.log(`when-to-meet dm error: ${error}`);
+    return c.json({ error: "Failed to send DMs" }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

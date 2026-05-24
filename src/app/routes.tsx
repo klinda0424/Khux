@@ -7,6 +7,11 @@ import { AdminDashboard } from "./pages/admin-dashboard";
 import { AdminApplications } from "./pages/admin-applications";
 import { Layout } from "./components/layout";
 import { NotFound } from "./pages/not-found";
+import { ReviewLogin } from "./pages/review-login";
+import { DiscordCallback } from "./pages/discord-callback";
+import { WhenToMeet } from "./pages/when-to-meet";
+import { WhenToMeetMembers } from "./pages/when-to-meet-members";
+import { WhenToMeetSchedule } from "./pages/when-to-meet-schedule";
 
 export const router = createBrowserRouter([
   {
@@ -30,5 +35,25 @@ export const router = createBrowserRouter([
   {
     path: "/admin/applications",
     Component: AdminApplications,
+  },
+  {
+    path: "/members/login",
+    Component: ReviewLogin,
+  },
+  {
+    path: "/auth/discord/callback",
+    Component: DiscordCallback,
+  },
+  {
+    path: "/when-to-meet",
+    Component: WhenToMeet,
+  },
+  {
+    path: "/when-to-meet/members",
+    Component: WhenToMeetMembers,
+  },
+  {
+    path: "/when-to-meet/schedule/:discordId",
+    Component: WhenToMeetSchedule,
   },
 ]);
