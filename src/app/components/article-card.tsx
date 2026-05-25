@@ -19,7 +19,7 @@ export function ArticleCard({ article }: ArticleCardProps) {
       to={`/articles/${article.id}`}
       className="group block bg-card border border-border rounded-lg overflow-hidden hover:shadow-lg transition-all duration-300"
     >
-      <div className="relative h-48 overflow-hidden bg-muted">
+      <div className="relative h-64 overflow-hidden bg-muted">
         <ImageWithFallback
           src={article.imageUrl}
           alt={article.title}
