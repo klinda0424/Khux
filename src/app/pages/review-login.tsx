@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate, Link, useSearchParams } from "react-router";
 import { ArrowLeft, MessageCircle } from "lucide-react";
 import { useReviewUser } from "../../utils/review-auth";
 
@@ -9,11 +9,21 @@ const DISCORD_AUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${D
 
 export function ReviewLogin() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading } = useReviewUser();
 
   useEffect(() => {
+    const redirect = searchParams.get("redirect");
+    if (redirect) {
+      sessionStorage.setItem("khux_redirect_after_login", redirect);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     if (!loading && user) {
-      navigate("/review");
+      const redirect = sessionStorage.getItem("khux_redirect_after_login") || "/review";
+      sessionStorage.removeItem("khux_redirect_after_login");
+      navigate(redirect);
     }
   }, [user, loading, navigate]);
 

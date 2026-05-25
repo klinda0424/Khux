@@ -31,7 +31,9 @@ export function DiscordCallback() {
       .then((data) => {
         if (data.token) {
           setReviewToken(data.token);
-          navigate("/review");
+          const redirect = sessionStorage.getItem("khux_redirect_after_login") || "/review";
+          sessionStorage.removeItem("khux_redirect_after_login");
+          navigate(redirect);
         } else {
           throw new Error("No token received");
         }

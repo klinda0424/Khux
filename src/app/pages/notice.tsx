@@ -84,7 +84,7 @@ export function Notice() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/review/login");
+      navigate("/review/login?redirect=/notice");
     }
   }, [user, loading, navigate]);
 
