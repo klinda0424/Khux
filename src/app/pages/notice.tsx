@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router";
 import { ChevronDown, ChevronUp, Pin, Lock } from "lucide-react";
+import { useReviewUser } from "../../utils/review-auth";
 
 interface NoticeItem {
   id: number;
@@ -74,9 +76,25 @@ const mockNotices: NoticeItem[] = [
 const CATEGORIES = ["전체", "모집", "세미나", "안내", "특강"];
 
 export function Notice() {
+  const navigate = useNavigate();
+  const { user, loading } = useReviewUser();
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/review/login");
+    }
+  }, [user, loading, navigate]);
+
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">로딩 중...</div>
+      </div>
+    );
+  }
 
   const filtered = mockNotices.filter((n) => {
     const matchCategory = selectedCategory === "전체" || n.category === selectedCategory;
