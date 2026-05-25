@@ -31,7 +31,7 @@ export function DiscordCallback() {
       .then((data) => {
         if (data.token) {
           setReviewToken(data.token);
-          const redirect = sessionStorage.getItem("khux_redirect_after_login") || "/notice";
+          const redirect = sessionStorage.getItem("khux_redirect_after_login") || "/review";
           sessionStorage.removeItem("khux_redirect_after_login");
           navigate(redirect);
         } else {

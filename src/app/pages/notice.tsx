@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
-import { ChevronDown, ChevronUp, Pin, Lock, ClipboardList } from "lucide-react";
+import { useState } from "react";
+import { Link } from "react-router";
+import { ChevronDown, ChevronUp, Pin, Lock } from "lucide-react";
 import { useReviewUser } from "../../utils/review-auth";
 
 interface NoticeItem {
@@ -76,25 +76,10 @@ const mockNotices: NoticeItem[] = [
 const CATEGORIES = ["전체", "모집", "세미나", "안내", "특강"];
 
 export function Notice() {
-  const navigate = useNavigate();
-  const { user, loading } = useReviewUser();
+  const { user } = useReviewUser();
   const [selectedCategory, setSelectedCategory] = useState<string>("전체");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/review/login?redirect=/notice");
-    }
-  }, [user, loading, navigate]);
-
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">로딩 중...</div>
-      </div>
-    );
-  }
 
   const filtered = mockNotices.filter((n) => {
     const matchCategory = selectedCategory === "전체" || n.category === selectedCategory;
@@ -111,26 +96,11 @@ export function Notice() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
 
         {/* Header */}
-        <div className="mb-10 flex items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-primary/20 text-foreground border border-primary/30 font-medium">
-                <Lock className="w-3 h-3" />
-                Members Only
-              </span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-bold mb-3">공지사항</h1>
-            <p className="text-muted-foreground text-lg">
-              KHUX 학회의 공지사항을 확인하세요.
-            </p>
-          </div>
-          <Link
-            to="/review"
-            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground transition-colors mt-1"
-          >
-            <ClipboardList className="w-4 h-4" />
-            피어리뷰
-          </Link>
+        <div className="mb-10">
+          <h1 className="text-4xl sm:text-5xl font-bold mb-3">공지사항</h1>
+          <p className="text-muted-foreground text-lg">
+            KHUX 학회의 공지사항을 확인하세요.
+          </p>
         </div>
 
         {/* Search */}
@@ -171,12 +141,14 @@ export function Notice() {
           {sortedNotices.map((notice) => (
             <div
               key={notice.id}
-              className={`cursor-pointer transition-colors ${
+              className={`transition-colors ${
                 notice.important ? "bg-primary/5" : "bg-background"
-              } hover:bg-accent/40`}
-              onClick={() =>
-                setExpandedId(expandedId === notice.id ? null : notice.id)
-              }
+              } ${(!notice.membersOnly || user) ? "cursor-pointer hover:bg-accent/40" : ""}`}
+              onClick={() => {
+                if (!notice.membersOnly || user) {
+                  setExpandedId(expandedId === notice.id ? null : notice.id);
+                }
+              }}
             >
               {/* 목록 행 */}
               <div className="flex items-center justify-between px-5 py-4 gap-4">
@@ -204,19 +176,40 @@ export function Notice() {
                   <span className="hidden sm:block">{notice.author}</span>
                   <span>{notice.date}</span>
                   <span className="hidden sm:block">조회 {notice.views}</span>
-                  {expandedId === notice.id
-                    ? <ChevronUp className="w-4 h-4" />
-                    : <ChevronDown className="w-4 h-4" />
-                  }
+                  {(!notice.membersOnly || user) && (
+                    expandedId === notice.id
+                      ? <ChevronUp className="w-4 h-4" />
+                      : <ChevronDown className="w-4 h-4" />
+                  )}
+                  {notice.membersOnly && !user && (
+                    <Lock className="w-4 h-4" />
+                  )}
                 </div>
               </div>
 
               {/* 펼쳐진 내용 */}
-              {expandedId === notice.id && (
+              {expandedId === notice.id && (!notice.membersOnly || user) && (
                 <div className="px-5 pb-5 pt-2 border-t border-border">
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {notice.content}
                   </p>
+                </div>
+              )}
+
+              {/* 비로그인 Members only 안내 */}
+              {notice.membersOnly && !user && expandedId !== notice.id && (
+                <div
+                  className="px-5 py-3 border-t border-border flex items-center justify-between bg-muted/30 cursor-pointer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="text-xs text-muted-foreground">멤버 전용 공지입니다.</span>
+                  <Link
+                    to="/review/login?redirect=/notice"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
+                  >
+                    로그인하기
+                  </Link>
                 </div>
               )}
             </div>
