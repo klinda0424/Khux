@@ -12,6 +12,7 @@ import { DiscordCallback } from "./pages/discord-callback";
 import { ReviewDashboard } from "./pages/review-dashboard";
 import { ReviewForm } from "./pages/review-form";
 import { AdminReview } from "./pages/admin-review";
+import { Notice } from "./pages/notice";
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, Component: Home },
       { path: "recruit", Component: Recruit },
+      { path: "notice", Component: Notice },
       { path: "articles/:id", Component: ArticleDetail },
       { path: "*", Component: NotFound },
     ],

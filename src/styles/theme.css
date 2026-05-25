@@ -1,7 +1,57 @@
 @custom-variant dark (&:is(.dark *));
 
+/* Light mode (default) */
 :root {
   --font-size: 15px;
+  --background: #f9f9f9;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #c8ff00;
+  --primary-foreground: #111111;
+  --secondary: #f0f0f0;
+  --secondary-foreground: #111111;
+  --muted: #f0f0f0;
+  --muted-foreground: #777777;
+  --accent: #f0f0f0;
+  --accent-foreground: #444444;
+  --destructive: #dc3545;
+  --destructive-foreground: #ffffff;
+  --border: rgba(0, 0, 0, 0.1);
+  --input: rgba(0, 0, 0, 0.06);
+  --input-background: #ffffff;
+  --switch-background: #cccccc;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #c8ff00;
+  --chart-1: #c8ff00;
+  --chart-2: #3a3aff;
+  --chart-3: #ff6b35;
+  --chart-4: #999999;
+  --chart-5: #444444;
+  --radius: 1rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #c8ff00;
+  --sidebar-primary-foreground: #111111;
+  --sidebar-accent: #f0f0f0;
+  --sidebar-accent-foreground: #444444;
+  --sidebar-border: rgba(0, 0, 0, 0.1);
+  --sidebar-ring: #c8ff00;
+
+  /* Custom extras */
+  --accent-lime: #c8ff00;
+  --accent-blue: #3a3aff;
+  --accent-orange: #ff6b35;
+  --surface: #f4f4f4;
+  --surface2: #ebebeb;
+  --text-sub: #777777;
+}
+
+/* Dark mode */
+.dark {
   --background: #0a0a0a;
   --foreground: #f0f0f0;
   --card: #111111;
@@ -22,15 +72,7 @@
   --input: rgba(255, 255, 255, 0.08);
   --input-background: #111111;
   --switch-background: #333333;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
   --ring: #c8ff00;
-  --chart-1: #c8ff00;
-  --chart-2: #3a3aff;
-  --chart-3: #ff6b35;
-  --chart-4: #999999;
-  --chart-5: #444444;
-  --radius: 1rem;
   --sidebar: #111111;
   --sidebar-foreground: #f0f0f0;
   --sidebar-primary: #c8ff00;
@@ -39,11 +81,6 @@
   --sidebar-accent-foreground: #f0f0f0;
   --sidebar-border: rgba(255, 255, 255, 0.08);
   --sidebar-ring: #c8ff00;
-
-  /* Custom extras */
-  --accent-lime: #c8ff00;
-  --accent-blue: #3a3aff;
-  --accent-orange: #ff6b35;
   --surface: #111111;
   --surface2: #1a1a1a;
   --text-sub: #999999;
