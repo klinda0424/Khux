@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router";
-import { ChevronDown, ChevronUp, Pin, Lock } from "lucide-react";
+import { useNavigate, Link } from "react-router";
+import { ChevronDown, ChevronUp, Pin, Lock, ClipboardList } from "lucide-react";
 import { useReviewUser } from "../../utils/review-auth";
 
 interface NoticeItem {
@@ -111,11 +111,26 @@ export function Notice() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
 
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-3">공지사항</h1>
-          <p className="text-muted-foreground text-lg">
-            KHUX 학회의 공지사항을 확인하세요.
-          </p>
+        <div className="mb-10 flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-primary/20 text-foreground border border-primary/30 font-medium">
+                <Lock className="w-3 h-3" />
+                Members Only
+              </span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold mb-3">공지사항</h1>
+            <p className="text-muted-foreground text-lg">
+              KHUX 학회의 공지사항을 확인하세요.
+            </p>
+          </div>
+          <Link
+            to="/review"
+            className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:border-foreground transition-colors mt-1"
+          >
+            <ClipboardList className="w-4 h-4" />
+            피어리뷰
+          </Link>
         </div>
 
         {/* Search */}
@@ -199,24 +214,9 @@ export function Notice() {
               {/* 펼쳐진 내용 */}
               {expandedId === notice.id && (
                 <div className="px-5 pb-5 pt-2 border-t border-border">
-                  {notice.membersOnly ? (
-                    <div className="relative">
-                      <p className="text-sm text-muted-foreground leading-relaxed blur-sm select-none">
-                        {notice.content}
-                      </p>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-background border border-border shadow-sm">
-                          <Lock className="w-4 h-4 text-primary" />
-                          <span className="text-sm font-medium">Members only</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">멤버에게만 공개된 공지사항입니다.</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      {notice.content}
-                    </p>
-                  )}
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {notice.content}
+                  </p>
                 </div>
               )}
             </div>
