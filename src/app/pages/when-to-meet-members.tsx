@@ -88,28 +88,18 @@ function buildDmText(names: string[], overlap: OverlapSlot[]): string {
   return `[${nameList}] 미팅  ${timeList} 가능하신가요?`;
 }
 
-function toMMDD(dateStr: string) {
-  return dateStr.slice(5).replace("-", "/");
-}
-
-// Discord 닉네임에서 팀/기수 파싱해서 GenGroup 구조로 변환
 function buildGroups(rawMembers: Record<string, Member[]>): GenGroup[] {
   const allFlat = Object.values(rawMembers).flat();
-
   const gen3 = allFlat.filter((m) => m.display_name.includes("3기"));
   const gen2 = allFlat.filter((m) => m.display_name.includes("2기"));
   const directors = allFlat.filter(
     (m) => !m.display_name.includes("2기") && !m.display_name.includes("3기") && (m.is_leader || m.display_name.includes("Founder"))
   );
-
   const split = (arr: Member[], kw: string) =>
     arr.filter((m) => m.display_name.toLowerCase().includes(kw.toLowerCase()));
 
   return [
-    {
-      label: "Director",
-      subs: [{ label: "", key: "director", members: directors }],
-    },
+    { label: "Director", subs: [{ label: "", key: "director", members: directors }] },
     {
       label: "2기",
       subs: [
@@ -156,18 +146,9 @@ export function WhenToMeetMembers() {
     reviewApiFetch("/when-to-meet/members")
       .then((r) => r.json())
       .then((data) => {
-        const rawMembers: Record<string, Member[]> = data.members ?? {};
-        // Attach schedule_until from has_schedule + availability dates
-        const withDates: Record<string, Member[]> = {};
-        for (const [team, members] of Object.entries(rawMembers)) {
-          withDates[team] = members.map((m) => ({
-            ...m,
-            schedule_until: m.has_schedule ? undefined : undefined,
-          }));
-        }
-        const built = buildGroups(withDates);
-        setGroups(built);
-        setAllMembers(Object.values(withDates).flat());
+        const raw: Record<string, Member[]> = data.members ?? {};
+        setGroups(buildGroups(raw));
+        setAllMembers(Object.values(raw).flat());
       })
       .catch(() => setError("멤버 목록을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
@@ -281,18 +262,12 @@ export function WhenToMeetMembers() {
                         <div
                           key={m.discord_id}
                           className={`relative flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border bg-card hover:border-primary/40"
+                            isSelected ? "border-primary bg-primary/5" : "border-border bg-card hover:border-primary/40"
                           }`}
                           onClick={() => toggleSelect(m.discord_id)}
                         >
                           <div className="shrink-0">
-                            {isSelected ? (
-                              <CheckCircle2 className="h-4 w-4 text-primary" />
-                            ) : (
-                              <Circle className="h-4 w-4 text-muted-foreground" />
-                            )}
+                            {isSelected ? <CheckCircle2 className="h-4 w-4 text-primary" /> : <Circle className="h-4 w-4 text-muted-foreground" />}
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">
@@ -301,18 +276,13 @@ export function WhenToMeetMembers() {
                             </p>
                             <p className={`text-xs ${m.has_schedule ? "text-green-500" : "text-muted-foreground"}`}>
                               {m.has_schedule
-                                ? m.schedule_until
-                                  ? `~${m.schedule_until}까지 등록됨`
-                                  : "등록됨"
+                                ? m.schedule_until ? `~${m.schedule_until}까지 등록됨` : "등록됨"
                                 : "미등록"}
                             </p>
                           </div>
                           <button
                             className="shrink-0 text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/when-to-meet/schedule/${m.discord_id}`);
-                            }}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/when-to-meet/schedule/${m.discord_id}`); }}
                           >
                             {isMe ? "수정" : "보기"}
                           </button>
@@ -331,14 +301,10 @@ export function WhenToMeetMembers() {
             <div className="bg-card border border-border rounded-xl shadow-lg p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-medium">{selected.size}명 선택됨</span>
-                <button
-                  onClick={() => { setSelected(new Set()); setOverlap(null); setSendResult(null); }}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <X className="h-4 w-4" />
+                <button onClick={() => { setSelected(new Set()); setOverlap(null); setSendResult(null); }}>
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                 </button>
               </div>
-
               <button
                 onClick={handleSort}
                 disabled={sorting}
@@ -351,9 +317,7 @@ export function WhenToMeetMembers() {
               {overlap !== null && (
                 <div className="mt-4">
                   {overlap.length === 0 ? (
-                    <p className="text-sm text-center text-muted-foreground py-2">
-                      공통으로 가능한 시간이 없습니다.
-                    </p>
+                    <p className="text-sm text-center text-muted-foreground py-2">공통으로 가능한 시간이 없습니다.</p>
                   ) : (
                     <>
                       <div className="mb-3 space-y-1">
@@ -383,14 +347,10 @@ export function WhenToMeetMembers() {
                         {sendResult && (
                           <div className="mt-2 text-xs space-y-0.5">
                             {sendResult.sent.length > 0 && (
-                              <p className="text-green-500">
-                                전송 완료: {sendResult.sent.map((id) => allMembers.find((m) => m.discord_id === id)?.display_name ?? id).join(", ")}
-                              </p>
+                              <p className="text-green-500">전송 완료: {sendResult.sent.map((id) => allMembers.find((m) => m.discord_id === id)?.display_name ?? id).join(", ")}</p>
                             )}
                             {sendResult.failed.length > 0 && (
-                              <p className="text-destructive">
-                                전송 실패: {sendResult.failed.map((id) => allMembers.find((m) => m.discord_id === id)?.display_name ?? id).join(", ")}
-                              </p>
+                              <p className="text-destructive">전송 실패: {sendResult.failed.map((id) => allMembers.find((m) => m.discord_id === id)?.display_name ?? id).join(", ")}</p>
                             )}
                           </div>
                         )}

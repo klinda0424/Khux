@@ -53,7 +53,7 @@ app.use(
   "/*",
   cors({
     origin: "*",
-    allowHeaders: ["Content-Type", "Authorization", "x-user-token"],
+    allowHeaders: ["Content-Type", "Authorization", "x-user-token", "x-review-token", "x-bot-key"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
@@ -680,6 +680,59 @@ app.put("/make-server-d0140d55/recruit-config", async (c) => {
   }
 });
 
+// ============ Review PIN ============
+
+// Get review PIN (protected - only returns whether PIN is set)
+app.get("/make-server-d0140d55/review-pin/status", async (c) => {
+  try {
+    const accessToken = c.req.header('x-user-token');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    if (!user || authError) return c.json({ error: "Unauthorized" }, 401);
+
+    const pin = await kv.get("review:pin");
+    return c.json({ hasPin: !!pin });
+  } catch (error) {
+    console.log(`Error checking review pin: ${error}`);
+    return c.json({ error: "Failed to check review pin" }, 500);
+  }
+});
+
+// Set review PIN (protected)
+app.put("/make-server-d0140d55/review-pin", async (c) => {
+  try {
+    const accessToken = c.req.header('x-user-token');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    if (!user || authError) return c.json({ error: "Unauthorized" }, 401);
+
+    const { pin } = await c.req.json();
+    if (!pin || pin.length < 4) return c.json({ error: "PIN must be at least 4 characters" }, 400);
+
+    await kv.set("review:pin", pin);
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`Error setting review pin: ${error}`);
+    return c.json({ error: "Failed to set review pin" }, 500);
+  }
+});
+
+// Verify review PIN (protected)
+app.post("/make-server-d0140d55/review-pin/verify", async (c) => {
+  try {
+    const accessToken = c.req.header('x-user-token');
+    const { data: { user }, error: authError } = await supabase.auth.getUser(accessToken);
+    if (!user || authError) return c.json({ error: "Unauthorized" }, 401);
+
+    const { pin } = await c.req.json();
+    const storedPin = await kv.get("review:pin");
+
+    if (!storedPin) return c.json({ error: "No PIN set" }, 404);
+    return c.json({ valid: pin === storedPin });
+  } catch (error) {
+    console.log(`Error verifying review pin: ${error}`);
+    return c.json({ error: "Failed to verify review pin" }, 500);
+  }
+});
+
 // ============ Initialize Sample Data ============
 // This endpoint populates the database with sample data (one-time use)
 app.post("/make-server-d0140d55/init-sample-data", async (c) => {
@@ -825,7 +878,7 @@ app.post("/make-server-d0140d55/init-sample-data", async (c) => {
   }
 });
 
-// ============ Discord / Members Only ============
+// ============ Review System Configuration ============
 
 const DISCORD_CLIENT_ID = "1487816060777533532";
 const DISCORD_GUILD_ID = "1469604778496757783";
@@ -838,6 +891,19 @@ const TEAM_ROLES: Record<string, { name: string; role_id: string }> = {
   growth_pr: { name: "Growth-PR", role_id: "1476977666073559204" },
 };
 
+const REVIEW_CRITERIA = [
+  { name: "커뮤니케이션 참여도", desc: "팀 내 소통에 얼마나 적극적으로 참여했나요? (응답 속도, 의사 전달의 명확성, 논의 참여도 등)" },
+  { name: "책임감 및 과업 수행도", desc: "맡은 역할을 책임감 있게 수행했나요? (마감 기한 준수, 작업 완성도, 성실성 등)" },
+  { name: "팀 이해도 및 협업 기여도", desc: "팀 전체의 역할과 일정 흐름을 충분히 이해하고 있었나요? (디스코드/스레드 내용 숙지, 진행 상황 팔로우업 등)" },
+];
+
+const LEADER_CRITERIA = [
+  { name: "리더십 및 팀 운영 능력", desc: "프로젝트를 체계적으로 이끌고 있었나요? (일정 관리, 역할 분배, 의사결정 등)" },
+  { name: "커뮤니케이션 및 조율 능력", desc: "팀원 간 의견을 잘 조율하고 원활한 소통 환경을 만들었나요?" },
+  { name: "문제 대응 및 방향성 제시", desc: "문제에 대해 적절히 대응하고, 팀의 방향성을 명확하게 제시했나요?" },
+];
+
+// Helper: verify Discord review session token
 async function getReviewUser(token: string | undefined) {
   if (!token) return null;
   const session = await kv.get(`discord_session:${token}`);
@@ -849,6 +915,14 @@ async function getReviewUser(token: string | undefined) {
   return session;
 }
 
+// Helper: verify bot API key
+function verifyBotKey(key: string | undefined): boolean {
+  const botKey = Deno.env.get("BOT_API_KEY");
+  return !!botKey && key === botKey;
+}
+
+// ============ Discord OAuth ============
+
 // Exchange Discord OAuth code for session token
 app.post("/make-server-d0140d55/discord/auth", async (c) => {
   try {
@@ -858,6 +932,7 @@ app.post("/make-server-d0140d55/discord/auth", async (c) => {
     const clientSecret = Deno.env.get("DISCORD_CLIENT_SECRET");
     if (!clientSecret) return c.json({ error: "Server configuration error" }, 500);
 
+    // Exchange code for Discord access token
     const tokenRes = await fetch("https://discord.com/api/v10/oauth2/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -870,20 +945,26 @@ app.post("/make-server-d0140d55/discord/auth", async (c) => {
       }),
     });
     const tokenData = await tokenRes.json();
-    if (!tokenRes.ok) return c.json({ error: "Discord authentication failed" }, 401);
+    if (!tokenRes.ok) {
+      console.log(`Discord token exchange failed: ${JSON.stringify(tokenData)}`);
+      return c.json({ error: "Discord authentication failed" }, 401);
+    }
 
+    // Get user info
     const userRes = await fetch("https://discord.com/api/v10/users/@me", {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
     const userData = await userRes.json();
     if (!userRes.ok) return c.json({ error: "Failed to get Discord user info" }, 401);
 
+    // Get guild member info (roles)
     const memberRes = await fetch(
       `https://discord.com/api/v10/users/@me/guilds/${DISCORD_GUILD_ID}/member`,
       { headers: { Authorization: `Bearer ${tokenData.access_token}` } }
     );
     const memberData = await memberRes.json();
 
+    // Determine team from roles
     let team = "";
     let teamName = "";
     let isLeader = false;
@@ -895,11 +976,14 @@ app.post("/make-server-d0140d55/discord/auth", async (c) => {
           break;
         }
       }
+      // Check leader from nickname
       const nick = memberData.nick || userData.global_name || userData.username;
       isLeader = nick?.includes("Leader") ?? false;
     }
 
     const displayName = memberData.nick || userData.global_name || userData.username;
+
+    // Create session token
     const sessionToken = crypto.randomUUID();
     const expires = new Date();
     expires.setDate(expires.getDate() + 7);
@@ -917,6 +1001,7 @@ app.post("/make-server-d0140d55/discord/auth", async (c) => {
     };
 
     await kv.set(`discord_session:${sessionToken}`, sessionData);
+
     return c.json({ token: sessionToken, user: sessionData });
   } catch (error) {
     console.log(`Discord auth error: ${error}`);
@@ -924,31 +1009,855 @@ app.post("/make-server-d0140d55/discord/auth", async (c) => {
   }
 });
 
+// Get current review user
 app.get("/make-server-d0140d55/discord/me", async (c) => {
   const user = await getReviewUser(c.req.header("x-review-token"));
   if (!user) return c.json({ error: "Not authenticated" }, 401);
   return c.json({ user });
 });
 
+// Logout
 app.post("/make-server-d0140d55/discord/logout", async (c) => {
   const token = c.req.header("x-review-token");
   if (token) await kv.del(`discord_session:${token}`);
   return c.json({ success: true });
 });
 
-// ============ When To Meet ============
+// ============ Review Sessions ============
 
-// GET /when-to-meet/members — all guild members grouped by role
-app.get("/make-server-d0140d55/when-to-meet/members", async (c) => {
-  const user = await getReviewUser(c.req.header("x-review-token"));
-  if (!user) return c.json({ error: "Not authenticated" }, 401);
-
+// Create review session (admin or bot)
+app.post("/make-server-d0140d55/review/sessions", async (c) => {
   try {
+    // Allow both admin token and bot key
+    const adminToken = c.req.header("x-user-token");
+    const botKey = c.req.header("x-bot-key");
+
+    let authorized = false;
+    if (adminToken) {
+      const { data: { user } } = await supabase.auth.getUser(adminToken);
+      if (user) authorized = true;
+    }
+    if (!authorized && verifyBotKey(botKey)) authorized = true;
+    if (!authorized) return c.json({ error: "Unauthorized" }, 401);
+
+    const { title, team, team_name, members } = await c.req.json();
+    if (!title || !team || !members) return c.json({ error: "title, team, members required" }, 400);
+
+    const now = new Date();
+    const month = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const ts = now.getTime().toString(36);
+    const sessionId = `${team}_${month}_${ts}`;
+
+    const sessionData = {
+      id: sessionId,
+      title,
+      team,
+      team_name: team_name || TEAM_ROLES[team]?.name || team,
+      started_at: now.toISOString(),
+      active: true,
+      members, // [{discord_id, display_name, is_leader}]
+      criteria: REVIEW_CRITERIA,
+      leader_criteria: LEADER_CRITERIA,
+    };
+
+    await kv.set(`review_session:${sessionId}`, sessionData);
+    return c.json({ session: sessionData }, 201);
+  } catch (error) {
+    console.log(`Error creating review session: ${error}`);
+    return c.json({ error: "Failed to create session" }, 500);
+  }
+});
+
+// List review sessions
+app.get("/make-server-d0140d55/review/sessions", async (c) => {
+  try {
+    const sessions = await kv.getByPrefix("review_session:");
+    const active = c.req.query("active");
+    const filtered = active === "true" ? sessions.filter((s: any) => s.active) : sessions;
+    return c.json({ sessions: filtered });
+  } catch (error) {
+    console.log(`Error listing sessions: ${error}`);
+    return c.json({ error: "Failed to list sessions" }, 500);
+  }
+});
+
+// Get single session
+app.get("/make-server-d0140d55/review/sessions/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const session = await kv.get(`review_session:${id}`);
+    if (!session) return c.json({ error: "Session not found" }, 404);
+    return c.json({ session });
+  } catch (error) {
+    return c.json({ error: "Failed to get session" }, 500);
+  }
+});
+
+// Update session (end it, etc.)
+app.put("/make-server-d0140d55/review/sessions/:id", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const botKey = c.req.header("x-bot-key");
+    let authorized = false;
+    if (adminToken) {
+      const { data: { user } } = await supabase.auth.getUser(adminToken);
+      if (user) authorized = true;
+    }
+    if (!authorized && verifyBotKey(botKey)) authorized = true;
+    if (!authorized) return c.json({ error: "Unauthorized" }, 401);
+
+    const id = c.req.param("id");
+    const existing = await kv.get(`review_session:${id}`);
+    if (!existing) return c.json({ error: "Session not found" }, 404);
+
+    const updates = await c.req.json();
+    const updated = { ...existing, ...updates, id };
+    await kv.set(`review_session:${id}`, updated);
+    return c.json({ session: updated });
+  } catch (error) {
+    return c.json({ error: "Failed to update session" }, 500);
+  }
+});
+
+// Delete session (and all related review submissions)
+app.delete("/make-server-d0140d55/review/sessions/:id", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const botKey = c.req.header("x-bot-key");
+    let authorized = false;
+    if (adminToken) {
+      const { data: { user } } = await supabase.auth.getUser(adminToken);
+      if (user) authorized = true;
+    }
+    if (!authorized && verifyBotKey(botKey)) authorized = true;
+    if (!authorized) return c.json({ error: "Unauthorized" }, 401);
+
+    const id = c.req.param("id");
+    const session = await kv.get(`review_session:${id}`);
+    if (!session) return c.json({ error: "Session not found" }, 404);
+
+    const reviews = await kv.getByPrefixWithKeys(`review:${id}:`);
+    const leaderReviews = await kv.getByPrefixWithKeys(`leader_review:${id}:`);
+    const keys = [
+      ...reviews.map((r: any) => r.key),
+      ...leaderReviews.map((r: any) => r.key),
+    ];
+    if (keys.length > 0) await kv.mdel(keys);
+    await kv.del(`review_session:${id}`);
+
+    return c.json({ success: true, deleted_reviews: keys.length });
+  } catch (error) {
+    console.log(`Error deleting session: ${error}`);
+    return c.json({ error: "Failed to delete session" }, 500);
+  }
+});
+
+// ============ Review Submissions ============
+
+// Submit or update a peer review
+app.post("/make-server-d0140d55/review/sessions/:id/reviews", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const sessionId = c.req.param("id");
+    const session = await kv.get(`review_session:${sessionId}`);
+    if (!session || !session.active) return c.json({ error: "No active session" }, 404);
+
+    const { target_discord_id, scores, comment } = await c.req.json();
+    if (!target_discord_id || !scores || scores.length !== 3) {
+      return c.json({ error: "target_discord_id and 3 scores required" }, 400);
+    }
+    if (target_discord_id === user.discord_id) {
+      return c.json({ error: "Cannot review yourself" }, 400);
+    }
+
+    const reviewKey = `review:${sessionId}:${user.discord_id}:${target_discord_id}`;
+    const targetMember = session.members.find((m: any) => m.discord_id === target_discord_id);
+
+    await kv.set(reviewKey, {
+      reviewer_id: user.discord_id,
+      reviewer_name: user.display_name,
+      target_id: target_discord_id,
+      target_name: targetMember?.display_name || "Unknown",
+      scores,
+      comment: comment || "",
+      submitted_at: new Date().toISOString(),
+    });
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`Error submitting review: ${error}`);
+    return c.json({ error: "Failed to submit review" }, 500);
+  }
+});
+
+// Submit or update a leader review
+app.post("/make-server-d0140d55/review/sessions/:id/leader-reviews", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const sessionId = c.req.param("id");
+    const session = await kv.get(`review_session:${sessionId}`);
+    if (!session || !session.active) return c.json({ error: "No active session" }, 404);
+
+    const { target_discord_id, scores, comment } = await c.req.json();
+    if (!target_discord_id || !scores || scores.length !== 3) {
+      return c.json({ error: "target_discord_id and 3 scores required" }, 400);
+    }
+
+    const targetMember = session.members.find((m: any) => m.discord_id === target_discord_id);
+    if (!targetMember?.is_leader) {
+      return c.json({ error: "Target is not a leader" }, 400);
+    }
+
+    const reviewKey = `leader_review:${sessionId}:${user.discord_id}:${target_discord_id}`;
+
+    await kv.set(reviewKey, {
+      reviewer_id: user.discord_id,
+      reviewer_name: user.display_name,
+      target_id: target_discord_id,
+      target_name: targetMember.display_name,
+      scores,
+      comment: comment || "",
+      submitted_at: new Date().toISOString(),
+    });
+
+    return c.json({ success: true });
+  } catch (error) {
+    console.log(`Error submitting leader review: ${error}`);
+    return c.json({ error: "Failed to submit leader review" }, 500);
+  }
+});
+
+// Get current user's reviews for a session
+app.get("/make-server-d0140d55/review/sessions/:id/my-reviews", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const sessionId = c.req.param("id");
+    const reviews = await kv.getByPrefixWithKeys(`review:${sessionId}:${user.discord_id}:`);
+    const leaderReviews = await kv.getByPrefixWithKeys(`leader_review:${sessionId}:${user.discord_id}:`);
+
+    return c.json({
+      reviews: reviews.map((r) => r.value),
+      leader_reviews: leaderReviews.map((r) => r.value),
+    });
+  } catch (error) {
+    return c.json({ error: "Failed to get reviews" }, 500);
+  }
+});
+
+// Get submission status for a session
+app.get("/make-server-d0140d55/review/sessions/:id/status", async (c) => {
+  try {
+    const sessionId = c.req.param("id");
+    const session = await kv.get(`review_session:${sessionId}`);
+    if (!session) return c.json({ error: "Session not found" }, 404);
+
+    const allReviews = await kv.getByPrefixWithKeys(`review:${sessionId}:`);
+    const allLeaderReviews = await kv.getByPrefixWithKeys(`leader_review:${sessionId}:`);
+
+    const members = session.members || [];
+    const leaders = members.filter((m: any) => m.is_leader);
+
+    const status = members.map((member: any) => {
+      const otherMembers = members.filter((m: any) => m.discord_id !== member.discord_id);
+      const otherLeaders = leaders.filter((l: any) => l.discord_id !== member.discord_id);
+
+      const reviewedIds = allReviews
+        .filter((r: any) => r.key.startsWith(`review:${sessionId}:${member.discord_id}:`))
+        .map((r: any) => r.value.target_id);
+      const leaderReviewedIds = allLeaderReviews
+        .filter((r: any) => r.key.startsWith(`leader_review:${sessionId}:${member.discord_id}:`))
+        .map((r: any) => r.value.target_id);
+
+      return {
+        discord_id: member.discord_id,
+        display_name: member.display_name,
+        is_leader: member.is_leader,
+        common_total: otherMembers.length,
+        common_done: reviewedIds.length,
+        leader_total: otherLeaders.length,
+        leader_done: leaderReviewedIds.length,
+        complete: reviewedIds.length >= otherMembers.length && leaderReviewedIds.length >= otherLeaders.length,
+      };
+    });
+
+    return c.json({ session_id: sessionId, title: session.title, status });
+  } catch (error) {
+    return c.json({ error: "Failed to get status" }, 500);
+  }
+});
+
+// CSV export (admin only)
+app.get("/make-server-d0140d55/review/sessions/:id/export", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const sessionId = c.req.param("id");
+    const session = await kv.get(`review_session:${sessionId}`);
+    if (!session) return c.json({ error: "Session not found" }, 404);
+
+    const type = c.req.query("type") || "common"; // "common" or "leader"
+    const prefix = type === "leader" ? `leader_review:${sessionId}:` : `review:${sessionId}:`;
+    const reviews = await kv.getByPrefixWithKeys(prefix);
+
+    const criteriaNames = type === "leader"
+      ? LEADER_CRITERIA.map((c) => c.name)
+      : REVIEW_CRITERIA.map((c) => c.name);
+
+    const headers = ["리뷰어ID", "리뷰어", "대상ID", "대상", ...criteriaNames, "코멘트", "제출시간"];
+    const rows = reviews.map((r: any) => {
+      const v = r.value;
+      return [
+        v.reviewer_id, v.reviewer_name, v.target_id, v.target_name,
+        ...v.scores, v.comment, v.submitted_at,
+      ].map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(",");
+    });
+
+    const csv = "\uFEFF" + [headers.join(","), ...rows].join("\n");
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${sessionId}_${type}.csv"`,
+      },
+    });
+  } catch (error) {
+    return c.json({ error: "Failed to export" }, 500);
+  }
+});
+
+// CSV export across ALL sessions (admin only)
+// Path avoids `/review/sessions/:id` to prevent route ambiguity.
+app.get("/make-server-d0140d55/review/export-all", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const type = c.req.query("type") || "common";
+    const titleFilter = c.req.query("title");
+    let sessions = await kv.getByPrefix("review_session:");
+    if (titleFilter) {
+      sessions = sessions.filter((s: any) => s.title === titleFilter);
+    }
+    sessions.sort((a: any, b: any) =>
+      new Date(a.started_at).getTime() - new Date(b.started_at).getTime()
+    );
+
+    const criteriaNames = type === "leader"
+      ? LEADER_CRITERIA.map((c) => c.name)
+      : REVIEW_CRITERIA.map((c) => c.name);
+
+    const headers = [
+      "\uC138\uC158ID", "\uC138\uC158\uC81C\uBAA9", "\uD300\uBA85", "\uB9AC\uBDF0\uC5B4ID", "\uB9AC\uBDF0\uC5B4",
+      "\uB300\uC0C1ID", "\uB300\uC0C1", ...criteriaNames, "\uCF54\uBA58\uD2B8", "\uC81C\uCD9C\uC2DC\uAC04",
+    ];
+
+    const allRows: string[] = [];
+    for (const sess of sessions) {
+      const prefix = type === "leader"
+        ? `leader_review:${sess.id}:`
+        : `review:${sess.id}:`;
+      const reviews = await kv.getByPrefixWithKeys(prefix);
+      for (const r of reviews) {
+        const v = r.value;
+        const row = [
+          sess.id, sess.title, sess.team_name,
+          v.reviewer_id, v.reviewer_name, v.target_id, v.target_name,
+          ...v.scores, v.comment, v.submitted_at,
+        ]
+          .map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`)
+          .join(",");
+        allRows.push(row);
+      }
+    }
+
+    const csv = "\uFEFF" + [headers.join(","), ...allRows].join("\n");
+    return new Response(csv, {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="all_sessions_${type}.csv"`,
+      },
+    });
+  } catch (error) {
+    console.log(`Error exporting all sessions: ${error}`);
+    return c.json({ error: "Failed to export all" }, 500);
+  }
+});
+
+// ============ Bot API ============
+
+// Get submission status for bot reminders
+app.get("/make-server-d0140d55/review/bot/status/:team/:month", async (c) => {
+  try {
+    if (!verifyBotKey(c.req.header("x-bot-key"))) {
+      return c.json({ error: "Unauthorized" }, 401);
+    }
+
+    const team = c.req.param("team");
+    const month = c.req.param("month");
+    const sessionId = `${team}_${month}`;
+    const session = await kv.get(`review_session:${sessionId}`);
+    if (!session) return c.json({ error: "Session not found" }, 404);
+
+    const allReviews = await kv.getByPrefixWithKeys(`review:${sessionId}:`);
+    const allLeaderReviews = await kv.getByPrefixWithKeys(`leader_review:${sessionId}:`);
+
+    const members = session.members || [];
+    const leaders = members.filter((m: any) => m.is_leader);
+
+    const incomplete = members
+      .map((member: any) => {
+        const otherMembers = members.filter((m: any) => m.discord_id !== member.discord_id);
+        const otherLeaders = leaders.filter((l: any) => l.discord_id !== member.discord_id);
+
+        const commonDone = allReviews.filter((r: any) =>
+          r.key.startsWith(`review:${sessionId}:${member.discord_id}:`)
+        ).length;
+        const leaderDone = allLeaderReviews.filter((r: any) =>
+          r.key.startsWith(`leader_review:${sessionId}:${member.discord_id}:`)
+        ).length;
+
+        const missing: string[] = [];
+        if (commonDone < otherMembers.length) missing.push(`공통 피어리뷰 (${commonDone}/${otherMembers.length}명)`);
+        if (leaderDone < otherLeaders.length) missing.push(`리더 평가 (${leaderDone}/${otherLeaders.length}명)`);
+
+        return missing.length > 0 ? { discord_id: member.discord_id, display_name: member.display_name, missing } : null;
+      })
+      .filter(Boolean);
+
+    return c.json({ session_id: sessionId, incomplete });
+  } catch (error) {
+    return c.json({ error: "Failed to get bot status" }, 500);
+  }
+});
+
+// ============ Admin: Send review reminders via Discord DM ============
+
+app.post("/make-server-d0140d55/review/sessions/:id/remind", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const sessionId = c.req.param("id");
+    const session = await kv.get(`review_session:${sessionId}`);
+    if (!session) return c.json({ error: "Session not found" }, 404);
+
     const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
     if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
 
-    // Paginate through guild members
-    const allMembers: any[] = [];
+    // Get submission status
+    const allReviews = await kv.getByPrefixWithKeys(`review:${sessionId}:`);
+    const allLeaderReviews = await kv.getByPrefixWithKeys(`leader_review:${sessionId}:`);
+    const members = session.members || [];
+    const leaders = members.filter((m: any) => m.is_leader);
+
+    const incomplete: { discord_id: string; display_name: string; missing: string[] }[] = [];
+
+    for (const member of members) {
+      const otherMembers = members.filter((m: any) => m.discord_id !== member.discord_id);
+      const otherLeaders = leaders.filter((l: any) => l.discord_id !== member.discord_id);
+
+      const commonDone = allReviews.filter((r: any) =>
+        r.key.startsWith(`review:${sessionId}:${member.discord_id}:`)
+      ).length;
+      const leaderDone = allLeaderReviews.filter((r: any) =>
+        r.key.startsWith(`leader_review:${sessionId}:${member.discord_id}:`)
+      ).length;
+
+      const missing: string[] = [];
+      if (commonDone < otherMembers.length) missing.push(`공통 피어리뷰 (${commonDone}/${otherMembers.length}명)`);
+      if (leaderDone < otherLeaders.length) missing.push(`리더 평가 (${leaderDone}/${otherLeaders.length}명)`);
+
+      if (missing.length > 0) {
+        incomplete.push({ discord_id: member.discord_id, display_name: member.display_name, missing });
+      }
+    }
+
+    if (incomplete.length === 0) {
+      return c.json({ success: true, message: "모든 팀원이 리뷰를 완료했습니다!", sent: 0 });
+    }
+
+    // Send DMs via Discord API
+    const sent: string[] = [];
+    const failed: string[] = [];
+
+    for (const member of incomplete) {
+      try {
+        // Create DM channel
+        const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
+          method: "POST",
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ recipient_id: member.discord_id }),
+        });
+
+        if (!dmRes.ok) {
+          failed.push(member.display_name);
+          continue;
+        }
+
+        const dmChannel = await dmRes.json();
+
+        // Send message
+        const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            embeds: [{
+              title: `KHUX 피어리뷰 리마인더`,
+              description: `**${session.team_name}** 팀 피어리뷰가 아직 완료되지 않았습니다.\n\n**미완료 항목:** ${member.missing.join(", ")}\n\n아래 링크에서 작성해주세요:\n**https://khux.vercel.app/review/login**`,
+              color: 0x5865F2,
+            }],
+          }),
+        });
+
+        if (msgRes.ok) {
+          sent.push(member.display_name);
+        } else {
+          failed.push(member.display_name);
+        }
+      } catch {
+        failed.push(member.display_name);
+      }
+    }
+
+    return c.json({
+      success: true,
+      message: `리마인더 전송 완료: ${sent.join(", ")} (${sent.length}명)${failed.length > 0 ? ` / 실패: ${failed.join(", ")}` : ""}`,
+      sent: sent.length,
+      failed: failed.length,
+    });
+  } catch (error) {
+    console.log(`Error sending reminders: ${error}`);
+    return c.json({ error: "Failed to send reminders" }, 500);
+  }
+});
+
+// ============ Admin: Start all team sessions ============
+
+// Fetch Discord guild members by role and create sessions for all teams
+app.post("/make-server-d0140d55/review/sessions/start-all", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const { title } = await c.req.json();
+    if (!title) return c.json({ error: "title required" }, 400);
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    // Fetch all guild members (paginated, max 1000)
+    let allMembers: any[] = [];
+    let after = "0";
+    while (true) {
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
+        { headers: { Authorization: `Bot ${botToken}` } }
+      );
+      if (!res.ok) {
+        console.log(`Discord API error: ${res.status}`);
+        break;
+      }
+      const batch = await res.json();
+      if (batch.length === 0) break;
+      allMembers = allMembers.concat(batch);
+      if (batch.length < 1000) break;
+      after = batch[batch.length - 1].user.id;
+    }
+
+    const now = new Date();
+    const month = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const results: any[] = [];
+
+    for (const [teamKey, teamConfig] of Object.entries(TEAM_ROLES)) {
+      // Filter members with this team's role
+      const teamMembers = allMembers
+        .filter((m: any) => !m.user.bot && m.roles.includes(teamConfig.role_id))
+        .map((m: any) => {
+          const displayName = m.nick || m.user.global_name || m.user.username;
+          return {
+            discord_id: m.user.id,
+            display_name: displayName,
+            is_leader: displayName?.includes("Leader") ?? false,
+          };
+        });
+
+      if (teamMembers.length === 0) continue;
+
+      const ts = now.getTime().toString(36);
+      const sessionId = `${teamKey}_${month}_${ts}`;
+      const sessionData = {
+        id: sessionId,
+        title,
+        team: teamKey,
+        team_name: teamConfig.name,
+        started_at: now.toISOString(),
+        active: true,
+        members: teamMembers,
+        criteria: REVIEW_CRITERIA,
+        leader_criteria: LEADER_CRITERIA,
+      };
+
+      await kv.set(`review_session:${sessionId}`, sessionData);
+      results.push({ team: teamConfig.name, members: teamMembers.length });
+    }
+
+    return c.json({ success: true, sessions: results });
+  } catch (error) {
+    console.log(`Error starting all sessions: ${error}`);
+    return c.json({ error: "Failed to start sessions" }, 500);
+  }
+});
+
+// ============ Admin: Create custom (project-team) session ============
+
+// Helper: match a typed name against guild members (nick / global_name / username)
+function matchMemberByName(searchName: string, guildMembers: any[]): any | null {
+  const normalize = (s: string) =>
+    (s || "").replace(/\s+/g, "").replace(/leader/gi, "").toLowerCase().trim();
+  const target = normalize(searchName);
+  if (!target) return null;
+
+  // 1) Exact normalized match
+  for (const m of guildMembers) {
+    const cands = [m.nick, m.user.global_name, m.user.username].filter(Boolean);
+    for (const c of cands) {
+      if (normalize(c) === target) return m;
+    }
+  }
+  // 2) Contains fallback
+  for (const m of guildMembers) {
+    const cands = [m.nick, m.user.global_name, m.user.username].filter(Boolean);
+    for (const c of cands) {
+      if (normalize(c).includes(target)) return m;
+    }
+  }
+  return null;
+}
+
+// Create a custom session by member name list (for project teams)
+app.post("/make-server-d0140d55/review/sessions/create-custom", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const { title, team_key, team_name, member_names } = await c.req.json();
+    if (!title || !team_key || !team_name || !Array.isArray(member_names) || member_names.length === 0) {
+      return c.json({ error: "title, team_key, team_name, member_names required" }, 400);
+    }
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    // Fetch all guild members
+    let allMembers: any[] = [];
+    let after = "0";
+    while (true) {
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
+        { headers: { Authorization: `Bot ${botToken}` } }
+      );
+      if (!res.ok) {
+        console.log(`Discord API error: ${res.status}`);
+        break;
+      }
+      const batch = await res.json();
+      if (batch.length === 0) break;
+      allMembers = allMembers.concat(batch);
+      if (batch.length < 1000) break;
+      after = batch[batch.length - 1].user.id;
+    }
+    const guildMembers = allMembers.filter((m: any) => !m.user.bot);
+
+    // Match each name to a guild member
+    const matched: any[] = [];
+    const notFound: string[] = [];
+    for (const rawName of member_names) {
+      const name = (rawName || "").trim();
+      if (!name) continue;
+      const m = matchMemberByName(name, guildMembers);
+      if (!m) {
+        notFound.push(name);
+        continue;
+      }
+      // Skip duplicates
+      if (matched.some((x) => x.discord_id === m.user.id)) continue;
+      const displayName = m.nick || m.user.global_name || m.user.username;
+      matched.push({
+        discord_id: m.user.id,
+        display_name: displayName,
+        is_leader: displayName?.includes("Leader") ?? false,
+      });
+    }
+
+    if (matched.length === 0) {
+      return c.json({ error: "No members matched", not_found: notFound }, 400);
+    }
+
+    const now = new Date();
+    const month = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const ts = now.getTime().toString(36);
+    const sessionId = `${team_key}_${month}_${ts}`;
+
+    const sessionData = {
+      id: sessionId,
+      title,
+      team: team_key,
+      team_name,
+      started_at: now.toISOString(),
+      active: true,
+      members: matched,
+      criteria: REVIEW_CRITERIA,
+      leader_criteria: LEADER_CRITERIA,
+    };
+
+    await kv.set(`review_session:${sessionId}`, sessionData);
+    return c.json({ session: sessionData, matched: matched.length, not_found: notFound }, 201);
+  } catch (error) {
+    console.log(`Error creating custom session: ${error}`);
+    return c.json({ error: "Failed to create custom session" }, 500);
+  }
+});
+
+// Bulk create custom sessions (multiple project teams in one call)
+app.post("/make-server-d0140d55/review/sessions/create-custom-bulk", async (c) => {
+  try {
+    const adminToken = c.req.header("x-user-token");
+    const { data: { user } } = await supabase.auth.getUser(adminToken);
+    if (!user) return c.json({ error: "Unauthorized" }, 401);
+
+    const { title, teams } = await c.req.json();
+    if (!title || !Array.isArray(teams) || teams.length === 0) {
+      return c.json({ error: "title and teams required" }, 400);
+    }
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    // Fetch all guild members ONCE
+    let allMembers: any[] = [];
+    let after = "0";
+    while (true) {
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
+        { headers: { Authorization: `Bot ${botToken}` } }
+      );
+      if (!res.ok) {
+        console.log(`Discord API error: ${res.status}`);
+        break;
+      }
+      const batch = await res.json();
+      if (batch.length === 0) break;
+      allMembers = allMembers.concat(batch);
+      if (batch.length < 1000) break;
+      after = batch[batch.length - 1].user.id;
+    }
+    const guildMembers = allMembers.filter((m: any) => !m.user.bot);
+
+    const now = new Date();
+    const month = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const created: any[] = [];
+    const skipped: any[] = [];
+
+    for (const team of teams) {
+      const { team_key, team_name, member_names } = team;
+      if (!team_key || !team_name || !Array.isArray(member_names) || member_names.length === 0) {
+        skipped.push({ team_name: team_name || team_key, reason: "invalid input" });
+        continue;
+      }
+
+      const matched: any[] = [];
+      const notFound: string[] = [];
+      for (const rawName of member_names) {
+        const name = (rawName || "").trim();
+        if (!name) continue;
+        const m = matchMemberByName(name, guildMembers);
+        if (!m) {
+          notFound.push(name);
+          continue;
+        }
+        if (matched.some((x) => x.discord_id === m.user.id)) continue;
+        const displayName = m.nick || m.user.global_name || m.user.username;
+        matched.push({
+          discord_id: m.user.id,
+          display_name: displayName,
+          is_leader: displayName?.includes("Leader") ?? false,
+        });
+      }
+
+      if (matched.length === 0) {
+        skipped.push({ team_name, reason: "no members matched", not_found: notFound });
+        continue;
+      }
+
+      // Use millisecond timestamp + team_key for uniqueness across rapid sequential creates
+      const ts = (now.getTime() + created.length).toString(36);
+      const sessionId = `${team_key}_${month}_${ts}`;
+
+      const sessionData = {
+        id: sessionId,
+        title,
+        team: team_key,
+        team_name,
+        started_at: now.toISOString(),
+        active: true,
+        members: matched,
+        criteria: REVIEW_CRITERIA,
+        leader_criteria: LEADER_CRITERIA,
+      };
+
+      await kv.set(`review_session:${sessionId}`, sessionData);
+      created.push({ team_name, matched: matched.length, not_found: notFound });
+    }
+
+    return c.json({ created, skipped, total: created.length }, 201);
+  } catch (error) {
+    console.log(`Error in bulk create: ${error}`);
+    return c.json({ error: "Failed to create sessions" }, 500);
+  }
+});
+
+// ============ Review Config (public) ============
+
+app.get("/make-server-d0140d55/review/config", (c) => {
+  return c.json({
+    teams: TEAM_ROLES,
+    criteria: REVIEW_CRITERIA,
+    leader_criteria: LEADER_CRITERIA,
+    discord_client_id: DISCORD_CLIENT_ID,
+    discord_redirect_uri: DISCORD_REDIRECT_URI,
+    discord_guild_id: DISCORD_GUILD_ID,
+  });
+});
+
+// ============ When To Meet ============
+
+// Get all guild members with schedule status
+app.get("/make-server-d0140d55/when-to-meet/members", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    let allMembers: any[] = [];
     let after = "0";
     while (true) {
       const res = await fetch(
@@ -956,105 +1865,104 @@ app.get("/make-server-d0140d55/when-to-meet/members", async (c) => {
         { headers: { Authorization: `Bot ${botToken}` } }
       );
       if (!res.ok) break;
-      const batch: any[] = await res.json();
+      const batch = await res.json();
       if (batch.length === 0) break;
-      allMembers.push(...batch);
+      allMembers = allMembers.concat(batch);
       if (batch.length < 1000) break;
       after = batch[batch.length - 1].user.id;
     }
 
-    // Group by team role
-    const grouped: Record<string, { discord_id: string; display_name: string; avatar: string | null; is_leader: boolean }[]> = {};
-    for (const [key, config] of Object.entries(TEAM_ROLES)) {
-      grouped[key] = [];
-    }
-    grouped["other"] = [];
+    const humanMembers = allMembers.filter((m: any) => !m.user.bot);
+    const members: any[] = [];
 
-    for (const m of allMembers) {
-      if (m.user?.bot) continue;
-      const displayName = m.nick || m.user?.global_name || m.user?.username || "Unknown";
-      const avatar = m.user?.avatar
-        ? `https://cdn.discordapp.com/avatars/${m.user.id}/${m.user.avatar}.png`
-        : null;
-      const isLeader = displayName.includes("Leader");
+    for (const m of humanMembers) {
+      const displayName = m.nick || m.user.global_name || m.user.username;
+      if (!displayName) continue;
 
-      let assigned = false;
-      for (const [key, config] of Object.entries(TEAM_ROLES)) {
-        if (m.roles?.includes(config.role_id)) {
-          grouped[key].push({ discord_id: m.user.id, display_name: displayName, avatar, is_leader: isLeader });
-          assigned = true;
-          break;
+      const discordId = m.user.id;
+      const schedule = await kv.get(`wtm_schedule:${discordId}`);
+
+      let hasSchedule = false;
+      let scheduleUntil: string | undefined;
+      if (schedule?.availability) {
+        const dates = Object.keys(schedule.availability).filter(
+          (d) => (schedule.availability[d] as number[]).length > 0
+        );
+        hasSchedule = dates.length > 0;
+        if (hasSchedule) {
+          scheduleUntil = dates.sort().at(-1)?.slice(5).replace("-", "/");
         }
       }
-      if (!assigned) grouped["other"].push({ discord_id: m.user.id, display_name: displayName, avatar, is_leader: isLeader });
+
+      members.push({
+        discord_id: discordId,
+        display_name: displayName,
+        avatar: m.user.avatar
+          ? `https://cdn.discordapp.com/avatars/${discordId}/${m.user.avatar}.png`
+          : null,
+        is_leader: (displayName as string).includes("Leader"),
+        has_schedule: hasSchedule,
+        schedule_until: scheduleUntil,
+      });
     }
 
-    // Remove empty other group
-    if (grouped["other"].length === 0) delete grouped["other"];
-
-    // Attach each member's saved schedule summary
-    const result: Record<string, any[]> = {};
-    for (const [team, members] of Object.entries(grouped)) {
-      result[team] = await Promise.all(
-        members.map(async (m) => {
-          const schedule = await kv.get(`wtm_schedule:${m.discord_id}`);
-          return { ...m, has_schedule: !!schedule };
-        })
-      );
-    }
-
-    return c.json({ teams: TEAM_ROLES, members: result });
+    return c.json({ members: { all: members } });
   } catch (error) {
-    console.log(`when-to-meet members error: ${error}`);
+    console.log(`Error fetching WTM members: ${error}`);
     return c.json({ error: "Failed to fetch members" }, 500);
   }
 });
 
-// GET /when-to-meet/schedule/:discordId — get a member's schedule
+// Get individual schedule
 app.get("/make-server-d0140d55/when-to-meet/schedule/:discordId", async (c) => {
-  const user = await getReviewUser(c.req.header("x-review-token"));
-  if (!user) return c.json({ error: "Not authenticated" }, 401);
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
 
-  const discordId = c.req.param("discordId");
-  const schedule = await kv.get(`wtm_schedule:${discordId}`);
-  return c.json({ schedule: schedule ?? null });
+    const discordId = c.req.param("discordId");
+    const schedule = await kv.get(`wtm_schedule:${discordId}`);
+    return c.json({ schedule: schedule ?? null });
+  } catch (error) {
+    console.log(`Error fetching WTM schedule: ${error}`);
+    return c.json({ error: "Failed to fetch schedule" }, 500);
+  }
 });
 
-// POST /when-to-meet/schedule — save current user's schedule
+// Save own schedule
 app.post("/make-server-d0140d55/when-to-meet/schedule", async (c) => {
-  const user = await getReviewUser(c.req.header("x-review-token"));
-  if (!user) return c.json({ error: "Not authenticated" }, 401);
-
   try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
     const { availability } = await c.req.json();
-    // availability: { "2024-01-15": [9, 10, 14, 15], ... }
     if (!availability || typeof availability !== "object") {
-      return c.json({ error: "availability object required" }, 400);
+      return c.json({ error: "availability required" }, 400);
     }
 
-    const data = {
+    const schedule = {
       discord_id: user.discord_id,
       display_name: user.display_name,
       availability,
       updated_at: new Date().toISOString(),
     };
-    await kv.set(`wtm_schedule:${user.discord_id}`, data);
-    return c.json({ success: true });
+
+    await kv.set(`wtm_schedule:${user.discord_id}`, schedule);
+    return c.json({ success: true, schedule });
   } catch (error) {
-    console.log(`when-to-meet schedule save error: ${error}`);
+    console.log(`Error saving WTM schedule: ${error}`);
     return c.json({ error: "Failed to save schedule" }, 500);
   }
 });
 
-// POST /when-to-meet/dm — send Discord DMs to selected members
+// Send Discord DMs to selected members
 app.post("/make-server-d0140d55/when-to-meet/dm", async (c) => {
-  const user = await getReviewUser(c.req.header("x-review-token"));
-  if (!user) return c.json({ error: "Not authenticated" }, 401);
-
   try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
     const { discord_ids, message } = await c.req.json();
-    if (!discord_ids || !Array.isArray(discord_ids) || !message) {
-      return c.json({ error: "discord_ids array and message required" }, 400);
+    if (!Array.isArray(discord_ids) || !message) {
+      return c.json({ error: "discord_ids and message required" }, 400);
     }
 
     const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
@@ -1067,17 +1975,25 @@ app.post("/make-server-d0140d55/when-to-meet/dm", async (c) => {
       try {
         const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
           method: "POST",
-          headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ recipient_id: discordId }),
         });
-        if (!dmRes.ok) { failed.push(discordId); continue; }
-        const dmChannel = await dmRes.json();
 
+        if (!dmRes.ok) { failed.push(discordId); continue; }
+
+        const dmChannel = await dmRes.json();
         const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
           method: "POST",
-          headers: { Authorization: `Bot ${botToken}`, "Content-Type": "application/json" },
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({ content: message }),
         });
+
         if (msgRes.ok) sent.push(discordId);
         else failed.push(discordId);
       } catch {
@@ -1085,9 +2001,9 @@ app.post("/make-server-d0140d55/when-to-meet/dm", async (c) => {
       }
     }
 
-    return c.json({ success: true, sent, failed });
+    return c.json({ sent, failed });
   } catch (error) {
-    console.log(`when-to-meet dm error: ${error}`);
+    console.log(`Error sending WTM DMs: ${error}`);
     return c.json({ error: "Failed to send DMs" }, 500);
   }
 });

@@ -31,7 +31,9 @@ export function DiscordCallback() {
       .then((data) => {
         if (data.token) {
           setReviewToken(data.token);
-          navigate("/when-to-meet");
+          const redirect = sessionStorage.getItem("khux_redirect_after_login") || "/review";
+          sessionStorage.removeItem("khux_redirect_after_login");
+          navigate(redirect);
         } else {
           throw new Error("No token received");
         }
@@ -51,7 +53,7 @@ export function DiscordCallback() {
               <p className="text-sm text-destructive">{error}</p>
             </div>
             <a
-              href="/members/login"
+              href="/review/login"
               className="inline-block py-2 px-4 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
               로그인 페이지로 돌아가기
