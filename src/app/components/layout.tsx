@@ -1,11 +1,37 @@
 import { Outlet, Link, useLocation } from "react-router";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
+import { apiFetch } from "../../utils/supabase-client";
 
 export function Layout() {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
+  const [recruitOpen, setRecruitOpen] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    return (localStorage.getItem("theme") as "light" | "dark") || "light";
+  });
+
+  useEffect(() => {
+    apiFetch("/recruit-config")
+      .then((r) => r.json())
+      .then(({ config }) => {
+        if (config) setRecruitOpen(config.isOpen ?? false);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
 
   const isHome = location.pathname === "/";
 
@@ -14,10 +40,8 @@ export function Layout() {
     { id: "articles", label: "Articles" },
     { id: "activities", label: "Activities" },
     { id: "gallery", label: "Gallery" },
-    { id: "news", label: "News" },
   ];
 
-  // Track active section on scroll (only on home page)
   useEffect(() => {
     if (!isHome) return;
 
@@ -40,7 +64,6 @@ export function Layout() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isHome]);
 
-  // Scroll to top on non-home route change
   useEffect(() => {
     if (!isHome) {
       window.scrollTo(0, 0);
@@ -71,18 +94,15 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border">
         <div className="container mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
             <button onClick={scrollToTop} className="flex items-center">
               <span className="text-lg font-extrabold tracking-tight" style={{ fontFamily: "'Inter', sans-serif", letterSpacing: '-0.03em' }}>
                 KH<span className="text-primary">UX</span>
               </span>
             </button>
 
-            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-8">
               {scrollNavItems.map((item) => (
                 <button
@@ -98,32 +118,61 @@ export function Layout() {
                 </button>
               ))}
               <Link
-                to="/recruit"
+                to="/notice"
                 className={`text-sm font-medium transition-colors ${
-                  location.pathname === "/recruit"
+                  location.pathname === "/notice"
                     ? "text-foreground"
                     : "text-text-sub hover:text-foreground"
                 }`}
               >
-                Recruit
+                Notice
+              </Link>
+              {recruitOpen && (
+                <Link
+                  to="/recruit"
+                  className={`text-sm font-medium transition-colors ${
+                    location.pathname === "/recruit"
+                      ? "text-foreground"
+                      : "text-text-sub hover:text-foreground"
+                  }`}
+                >
+                  Recruit
+                </Link>
+              )}
+              <Link
+                to="/review/login"
+                className="text-sm font-medium px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Members Only
               </Link>
             </nav>
 
-            {/* Mobile menu button */}
-            <button
-              className="md:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "light" ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
+              </button>
+              <button
+                className="md:hidden p-2"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <nav className="md:hidden py-4 space-y-1">
               {scrollNavItems.map((item) => (
@@ -140,27 +189,45 @@ export function Layout() {
                 </button>
               ))}
               <Link
-                to="/recruit"
+                to="/notice"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm ${
-                  location.pathname === "/recruit"
+                  location.pathname === "/notice"
                     ? "text-foreground bg-surface2"
                     : "text-text-sub hover:text-foreground hover:bg-surface2"
                 }`}
               >
-                Recruit
+                Notice
+              </Link>
+              {recruitOpen && (
+                <Link
+                  to="/recruit"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                    location.pathname === "/recruit"
+                      ? "text-foreground bg-surface2"
+                      : "text-text-sub hover:text-foreground hover:bg-surface2"
+                  }`}
+                >
+                  Recruit
+                </Link>
+              )}
+              <Link
+                to="/review/login"
+                onClick={() => setMobileMenuOpen(false)}
+                className="block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm font-medium text-primary hover:bg-surface2"
+              >
+                Members Only
               </Link>
             </nav>
           )}
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 pt-16">
         <Outlet />
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-border">
         <div className="container mx-auto px-6 sm:px-8 lg:px-12 py-12">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">

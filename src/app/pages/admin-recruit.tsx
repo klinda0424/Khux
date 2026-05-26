@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router";
 import { apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
 import type { RecruitConfig, RecruitQuestion, RecruitBasicField } from "../types/recruit-config";
@@ -116,7 +117,28 @@ export function AdminRecruitTab() {
   }
 
   return (
-    <div className="max-w-2xl space-y-8 pb-12">
+    <div className="space-y-8 pb-12">
+
+      {/* 상단 액션 */}
+      <div className="flex items-center justify-between">
+        <Link
+          to="/admin/applications"
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
+        >
+          <ExternalLink className="h-4 w-4" />
+          지원서 검토
+        </Link>
+        <div className="flex items-center gap-2.5 px-4 py-2.5 border border-border rounded-lg">
+          <div className="flex flex-col items-end">
+            <span className="text-sm font-medium">지원 폼 공개</span>
+            <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
+          </div>
+          <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
+          </button>
+        </div>
+      </div>
 
       {/* 기본 설정 */}
       <section>
@@ -135,48 +157,48 @@ export function AdminRecruitTab() {
               className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-none"
               placeholder="UX/UI에 관심 있는 경희대학교 학생이라면 누구나 지원 가능합니다." />
           </div>
-          <div className="flex items-center justify-between py-1">
-            <div>
-              <p className="text-sm font-medium">지원 폼 공개</p>
-              <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
-            </div>
-            <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
-            </button>
-          </div>
         </div>
       </section>
 
       {/* 모집 일정 */}
       <section>
         <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">모집 일정</h3>
-        <div className="space-y-4 p-6 bg-card border border-border rounded-xl">
-          <div>
-            <label className="block text-sm font-medium mb-2">지원 기간</label>
-            <div className="flex items-center gap-3">
-              <input type="date" value={config.applicationStart}
-                onChange={(e) => setConfig({ ...config, applicationStart: e.target.value })} className={INPUT_CLASS} />
-              <span className="text-muted-foreground shrink-0">~</span>
-              <input type="date" value={config.applicationEnd}
-                onChange={(e) => setConfig({ ...config, applicationEnd: e.target.value })} className={INPUT_CLASS} />
+        <div className="flex bg-card border border-border rounded-xl overflow-hidden">
+          <div className="flex-1 space-y-4 p-6">
+            <div>
+              <label className="block text-sm font-medium mb-2">지원 기간</label>
+              <div className="flex items-center gap-3">
+                <input type="date" value={config.applicationStart}
+                  onChange={(e) => setConfig({ ...config, applicationStart: e.target.value })} className={INPUT_CLASS} />
+                <span className="text-muted-foreground shrink-0">~</span>
+                <input type="date" value={config.applicationEnd}
+                  onChange={(e) => setConfig({ ...config, applicationEnd: e.target.value })} className={INPUT_CLASS} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">면접 일정</label>
+              <div className="flex items-center gap-3">
+                <input type="date" value={config.interviewStart}
+                  onChange={(e) => setConfig({ ...config, interviewStart: e.target.value })} className={INPUT_CLASS} />
+                <span className="text-muted-foreground shrink-0">~</span>
+                <input type="date" value={config.interviewEnd}
+                  onChange={(e) => setConfig({ ...config, interviewEnd: e.target.value })} className={INPUT_CLASS} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">결과 발표</label>
+              <input type="date" value={config.resultDate}
+                onChange={(e) => setConfig({ ...config, resultDate: e.target.value })} className={INPUT_CLASS} />
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">면접 일정</label>
-            <div className="flex items-center gap-3">
-              <input type="date" value={config.interviewStart}
-                onChange={(e) => setConfig({ ...config, interviewStart: e.target.value })} className={INPUT_CLASS} />
-              <span className="text-muted-foreground shrink-0">~</span>
-              <input type="date" value={config.interviewEnd}
-                onChange={(e) => setConfig({ ...config, interviewEnd: e.target.value })} className={INPUT_CLASS} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">결과 발표</label>
-            <input type="date" value={config.resultDate}
-              onChange={(e) => setConfig({ ...config, resultDate: e.target.value })} className={INPUT_CLASS} />
-          </div>
+          <div className="w-px bg-border shrink-0" />
+          <ScheduleCalendar
+            applicationStart={config.applicationStart}
+            applicationEnd={config.applicationEnd}
+            interviewStart={config.interviewStart}
+            interviewEnd={config.interviewEnd}
+            resultDate={config.resultDate}
+          />
         </div>
       </section>
 
@@ -192,44 +214,50 @@ export function AdminRecruitTab() {
         </div>
         <div className="space-y-2">
           {config.basicFields.map((f) => (
-            <div key={f.id} className={`flex items-center gap-3 px-4 py-3 bg-card border rounded-lg transition-opacity ${f.visible ? "border-border" : "border-border/40 opacity-50"}`}>
-              <div className="flex-1 space-y-1">
-                <input type="text" value={f.label}
-                  onChange={(e) => updateBasicField(f.id, "label", e.target.value)}
-                  className="text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full" />
-                {f.type !== "select" && (
-                  <input type="text" value={f.placeholder}
-                    onChange={(e) => updateBasicField(f.id, "placeholder", e.target.value)}
-                    className="text-xs text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full"
-                    placeholder="예시 텍스트" />
-                )}
+            <div key={f.id}
+              onClick={() => updateBasicField(f.id, "visible", !f.visible)}
+              className={`px-4 py-3 bg-card border rounded-lg cursor-pointer transition-opacity ${f.visible ? "border-border" : "border-border/40 opacity-50"}`}>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 space-y-1" onClick={(e) => e.stopPropagation()}>
+                  <input type="text" value={f.label}
+                    onChange={(e) => updateBasicField(f.id, "label", e.target.value)}
+                    className="text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full" />
+                  {f.type !== "select" && (
+                    <input type="text" value={f.placeholder}
+                      onChange={(e) => updateBasicField(f.id, "placeholder", e.target.value)}
+                      className="text-xs text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full"
+                      placeholder="예시 텍스트" />
+                  )}
+                </div>
+                <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {f.type !== "select" && (
+                    <select value={f.type}
+                      onChange={(e) => updateBasicField(f.id, "type", e.target.value)}
+                      className="text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none">
+                      <option value="text">텍스트</option>
+                      <option value="tel">전화번호</option>
+                      <option value="email">이메일</option>
+                    </select>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">필수</span>
+                    <button type="button"
+                      onClick={() => updateBasicField(f.id, "required", !f.required)}
+                      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${f.required ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${f.required ? "translate-x-3.5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
+                  {f.deletable && (
+                    <button onClick={() => deleteBasicField(f.id)}
+                      className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                {f.type !== "select" && (
-                  <select value={f.type}
-                    onChange={(e) => updateBasicField(f.id, "type", e.target.value)}
-                    className="text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none">
-                    <option value="text">텍스트</option>
-                    <option value="tel">전화번호</option>
-                    <option value="email">이메일</option>
-                  </select>
-                )}
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input type="checkbox" checked={f.required}
-                    onChange={(e) => updateBasicField(f.id, "required", e.target.checked)} className="rounded" />
-                  필수
-                </label>
-                <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                  <input type="checkbox" checked={f.visible}
-                    onChange={(e) => updateBasicField(f.id, "visible", e.target.checked)} className="rounded" />
-                  표시
-                </label>
-                {f.deletable && (
-                  <button onClick={() => deleteBasicField(f.id)}
-                    className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
-                )}
+              <div className="flex justify-end text-xs text-muted-foreground gap-1 items-center mt-2">
+                {f.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                {f.visible ? "표시됨" : "숨겨짐"}
               </div>
             </div>
           ))}
@@ -249,20 +277,9 @@ export function AdminRecruitTab() {
         <div className="space-y-3">
           {config.questions.map((q, i) => (
             <div key={q.id}
-              className={`p-4 bg-card border rounded-xl space-y-3 transition-opacity ${q.visible ? "border-border" : "border-border/40 opacity-60"}`}>
-              <div className="flex items-start gap-2">
-                {/* 순서 변경 */}
-                <div className="flex flex-col gap-0.5 shrink-0 pt-0.5">
-                  <button onClick={() => moveQuestion(i, -1)} disabled={i === 0}
-                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button onClick={() => moveQuestion(i, 1)} disabled={i === config.questions.length - 1}
-                    className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
+              onClick={() => updateQuestion(q.id, "visible", !q.visible)}
+              className={`p-4 bg-card border rounded-xl space-y-3 cursor-pointer transition-opacity ${q.visible ? "border-border" : "border-border/40 opacity-60"}`}>
+              <div className="flex items-start gap-2" onClick={(e) => e.stopPropagation()}>
                 {/* 라벨 */}
                 <input type="text" value={q.label}
                   onChange={(e) => updateQuestion(q.id, "label", e.target.value)}
@@ -270,16 +287,14 @@ export function AdminRecruitTab() {
 
                 {/* 옵션 */}
                 <div className="flex items-center gap-3 shrink-0">
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                    <input type="checkbox" checked={q.required}
-                      onChange={(e) => updateQuestion(q.id, "required", e.target.checked)} className="rounded" />
-                    필수
-                  </label>
-                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                    <input type="checkbox" checked={q.visible}
-                      onChange={(e) => updateQuestion(q.id, "visible", e.target.checked)} className="rounded" />
-                    표시
-                  </label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">필수</span>
+                    <button type="button"
+                      onClick={() => updateQuestion(q.id, "required", !q.required)}
+                      className={`relative inline-flex h-4 w-7 shrink-0 items-center rounded-full transition-colors ${q.required ? "bg-primary" : "bg-muted-foreground/30"}`}>
+                      <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition-transform ${q.required ? "translate-x-3.5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
                   <select value={q.type}
                     onChange={(e) => updateQuestion(q.id, "type", e.target.value as RecruitQuestion["type"])}
                     className="text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none">
@@ -287,6 +302,17 @@ export function AdminRecruitTab() {
                     <option value="text">단문</option>
                     <option value="url">링크</option>
                   </select>
+                  {/* 순서 변경 */}
+                  <div className="flex flex-col gap-0.5 shrink-0">
+                    <button onClick={() => moveQuestion(i, -1)} disabled={i === 0}
+                      className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => moveQuestion(i, 1)} disabled={i === config.questions.length - 1}
+                      className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                   {q.deletable && (
                     <button onClick={() => deleteQuestion(q.id)}
                       className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
@@ -296,19 +322,26 @@ export function AdminRecruitTab() {
                 </div>
               </div>
 
-              <input type="text" value={q.placeholder}
-                onChange={(e) => updateQuestion(q.id, "placeholder", e.target.value)}
-                className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                placeholder="플레이스홀더 텍스트" />
+              <div onClick={(e) => e.stopPropagation()}>
+                <input type="text" value={q.placeholder}
+                  onChange={(e) => updateQuestion(q.id, "placeholder", e.target.value)}
+                  className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                  placeholder="플레이스홀더 텍스트" />
 
-              {q.type === "textarea" && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>줄 수</span>
-                  <input type="number" value={q.rows ?? 4} min={2} max={12}
-                    onChange={(e) => updateQuestion(q.id, "rows", Number(e.target.value))}
-                    className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
-                </div>
-              )}
+                {q.type === "textarea" && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
+                    <span>줄 수</span>
+                    <input type="number" value={q.rows ?? 4} min={2} max={12}
+                      onChange={(e) => updateQuestion(q.id, "rows", Number(e.target.value))}
+                      className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-end text-xs text-muted-foreground gap-1 items-center">
+                {q.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                {q.visible ? "표시됨" : "숨겨짐"}
+              </div>
             </div>
           ))}
         </div>
@@ -327,6 +360,105 @@ export function AdminRecruitTab() {
           <RefreshCw className="h-4 w-4" />
           새로고침
         </button>
+      </div>
+    </div>
+  );
+}
+
+// ── 모집 일정 달력 ─────────────────────────────────────────────────────────────
+
+const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
+const DAY_NAMES = ["일","월","화","수","목","금","토"];
+
+function ScheduleCalendar({
+  applicationStart, applicationEnd,
+  interviewStart, interviewEnd,
+  resultDate,
+}: {
+  applicationStart: string; applicationEnd: string;
+  interviewStart: string; interviewEnd: string;
+  resultDate: string;
+}) {
+  const initYM = () => {
+    const d = applicationStart ? new Date(applicationStart + "T00:00:00") : new Date();
+    return { year: d.getFullYear(), month: d.getMonth() };
+  };
+  const [{ year, month }, setYM] = useState(initYM);
+
+  useEffect(() => {
+    if (applicationStart) {
+      const d = new Date(applicationStart + "T00:00:00");
+      setYM({ year: d.getFullYear(), month: d.getMonth() });
+    }
+  }, [applicationStart]);
+
+  const prev = () => setYM(({ year, month }) =>
+    month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 }
+  );
+  const next = () => setYM(({ year, month }) =>
+    month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 }
+  );
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const toYmd = (d: number) => `${year}-${pad(month + 1)}-${pad(d)}`;
+
+  const getDayClass = (ymd: string) => {
+    if (resultDate === ymd) return "bg-emerald-400/25 text-emerald-500 font-bold";
+    if (applicationStart && applicationEnd && ymd >= applicationStart && ymd <= applicationEnd)
+      return "bg-primary/20 text-primary font-semibold";
+    if (interviewStart && interviewEnd && ymd >= interviewStart && ymd <= interviewEnd)
+      return "bg-amber-400/20 text-amber-500 font-semibold";
+    return "text-foreground/70";
+  };
+
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  return (
+    <div className="p-5 w-64 shrink-0 flex flex-col justify-between">
+      {/* 월 네비게이션 */}
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prev} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <span className="text-sm font-semibold">{year}년 {MONTH_NAMES[month]}</span>
+        <button onClick={next} className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* 요일 */}
+      <div className="grid grid-cols-7 mb-1">
+        {DAY_NAMES.map(d => (
+          <div key={d} className="text-center text-[10px] text-muted-foreground/60 py-0.5">{d}</div>
+        ))}
+      </div>
+
+      {/* 날짜 그리드 */}
+      <div className="grid grid-cols-7 gap-y-0.5 flex-1">
+        {Array.from({ length: firstDow }).map((_, i) => <div key={`e${i}`} />)}
+        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(d => {
+          const ymd = toYmd(d);
+          return (
+            <div key={d} className={`aspect-square flex items-center justify-center text-[11px] rounded-md ${getDayClass(ymd)}`}>
+              {d}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* 범례 */}
+      <div className="mt-3 pt-3 border-t border-border flex items-center gap-3">
+        {[
+          { label: "지원",  cls: "bg-primary/20" },
+          { label: "면접",  cls: "bg-amber-400/20" },
+          { label: "결과",  cls: "bg-emerald-400/25" },
+        ].map(({ label, cls }) => (
+          <div key={label} className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <div className={`w-2.5 h-2.5 rounded-sm shrink-0 ${cls}`} />
+            {label}
+          </div>
+        ))}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router";
+import { useNavigate } from "react-router";
 import {
   LogOut,
   PlusCircle,
@@ -13,21 +13,38 @@ import {
   X,
   Image as ImageIcon,
   Calendar,
+  ClipboardCheck,
+  Play,
+  Download,
+  StopCircle,
+  Bell,
+  Check,
+  RefreshCw,
   UserPlus,
+  Lock,
+  Plus
 } from "lucide-react";
-import { supabase, apiFetch, apiFetchAuth, uploadImage } from "../../utils/supabase-client";
-import type { Article, NewsItem, GalleryItem, Activity } from "../data/mock-data";
+import { supabase, apiFetch, apiFetchAuth, uploadImage, API_BASE_URL } from "../../utils/supabase-client";
+import { publicAnonKey } from "/utils/supabase/info";
+import type { Article, NoticeItem, GalleryItem, Activity } from "../data/mock-data";
 import { MarkdownEditor } from "../components/markdown-editor";
 import { AdminRecruitTab } from "./admin-recruit";
 
-type TabType = "articles" | "news" | "gallery" | "activities" | "recruit";
+type TabType = "articles" | "notice" | "gallery" | "activities" | "review" | "recruit";
+
+const PROJECT_TEAM_PRESETS: { key: string; name: string; members: string[] }[] = [
+  { key: "team_a", name: "TEAM A", members: ["전지원", "강예빈", "한유민", "최정윤"] },
+  { key: "team_b", name: "TEAM B", members: ["이수민", "정예원", "이신유", "이유진"] },
+  { key: "team_c", name: "TEAM C", members: ["김민우", "곽슬기", "한지원", "고민서", "이유나"] },
+  { key: "team_d", name: "TEAM D", members: ["박진홍", "송유영", "서지은", "이혜린", "한가람"] },
+];
 
 export function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabType>("articles");
   const [searchQuery, setSearchQuery] = useState("");
   const [articles, setArticles] = useState<Article[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
+  const [notices, setNotices] = useState<NoticeItem[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
@@ -38,6 +55,42 @@ export function AdminDashboard() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Review access control
+  const [reviewUnlocked, setReviewUnlocked] = useState(false);
+  const [reviewPin, setReviewPin] = useState("");
+  const [reviewPinError, setReviewPinError] = useState("");
+  const [reviewHasPin, setReviewHasPin] = useState<boolean | null>(null);
+  const [showPinChange, setShowPinChange] = useState(false);
+  const [newPin, setNewPin] = useState("");
+  const [newPinConfirm, setNewPinConfirm] = useState("");
+
+  // Review management state
+  const [reviewSessions, setReviewSessions] = useState<any[]>([]);
+  const [selectedReviewSession, setSelectedReviewSession] = useState<string | null>(null);
+  const [reviewStatusData, setReviewStatusData] = useState<any[]>([]);
+  const [reviewStatusLoading, setReviewStatusLoading] = useState(false);
+  const [showStartForm, setShowStartForm] = useState(false);
+  const [newReviewTitle, setNewReviewTitle] = useState("");
+  const [startingReview, setStartingReview] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [expandedReviewGroup, setExpandedReviewGroup] = useState<string | null>(null);
+  const [expandedReviewTeam, setExpandedReviewTeam] = useState<string | null>(null);
+  // Project-team custom session form
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customTitle, setCustomTitle] = useState("");
+  const [customTeamKey, setCustomTeamKey] = useState("team_a");
+  const [customTeamName, setCustomTeamName] = useState("TEAM A");
+  const [customMembers, setCustomMembers] = useState<string[]>([]);
+  const [memberInput, setMemberInput] = useState("");
+  const [creatingCustom, setCreatingCustom] = useState(false);
+  // Bulk (all 4 project teams at once) form
+  const [showBulkForm, setShowBulkForm] = useState(false);
+  const [bulkTitle, setBulkTitle] = useState("");
+  const [bulkTeams, setBulkTeams] = useState(
+    PROJECT_TEAM_PRESETS.map((p) => ({ ...p, members: [...p.members], input: "" }))
+  );
+  const [creatingBulk, setCreatingBulk] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -66,6 +119,16 @@ export function AdminDashboard() {
     }
   }, [authenticated]);
 
+  // Check review PIN status when review tab is selected
+  useEffect(() => {
+    if (activeTab === "review" && !reviewUnlocked && authenticated) {
+      apiFetchAuth("/review-pin/status")
+        .then(r => r.json())
+        .then(d => setReviewHasPin(d.hasPin ?? false))
+        .catch(() => setReviewHasPin(false));
+    }
+  }, [activeTab, authenticated]);
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -82,13 +145,279 @@ export function AdminDashboard() {
         activitiesRes.json(),
       ]);
       setArticles(articlesData.articles || []);
-      setNews(newsData.news || []);
+      setNotices(newsData.news || []);
       setGallery(galleryData.gallery || []);
       setActivities(activitiesData.activities || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Review management functions
+  const fetchReviewSessions = async () => {
+    try {
+      const res = await apiFetchAuth("/review/sessions");
+      if (res.ok) {
+        const data = await res.json();
+        const sorted = (data.sessions || []).sort(
+          (a: any, b: any) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime()
+        );
+        setReviewSessions(sorted);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchReviewStatus = async (sessionId: string) => {
+    setReviewStatusLoading(true);
+    setSelectedReviewSession(sessionId);
+    try {
+      const res = await apiFetchAuth(`/review/sessions/${sessionId}/status`);
+      if (res.ok) {
+        const data = await res.json();
+        setReviewStatusData(data.status || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setReviewStatusLoading(false);
+    }
+  };
+
+  const startAllReviewSessions = async () => {
+    if (!newReviewTitle.trim()) return;
+    setStartingReview(true);
+    setReviewMessage(null);
+    try {
+      const res = await apiFetchAuth("/review/sessions/start-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newReviewTitle.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const summary = data.sessions.map((s: any) => `${s.team} (${s.members}명)`).join(", ");
+        setReviewMessage({ type: "success", text: `세션 생성 완료: ${summary}` });
+        setNewReviewTitle("");
+        setShowStartForm(false);
+        fetchReviewSessions();
+      } else {
+        setReviewMessage({ type: "error", text: data.error || "세션 생성 실패" });
+      }
+    } catch {
+      setReviewMessage({ type: "error", text: "세션 생성에 실패했습니다." });
+    } finally {
+      setStartingReview(false);
+    }
+  };
+
+  // Custom (project-team) session helpers
+  const applyPreset = (key: string) => {
+    const preset = PROJECT_TEAM_PRESETS.find((p) => p.key === key);
+    if (!preset) return;
+    setCustomTeamKey(preset.key);
+    setCustomTeamName(preset.name);
+    setCustomMembers([...preset.members]);
+  };
+
+  const addMember = () => {
+    const name = memberInput.trim();
+    if (!name) return;
+    if (customMembers.includes(name)) {
+      setMemberInput("");
+      return;
+    }
+    setCustomMembers([...customMembers, name]);
+    setMemberInput("");
+  };
+
+  const removeMember = (name: string) => {
+    setCustomMembers(customMembers.filter((m) => m !== name));
+  };
+
+  const resetCustomForm = () => {
+    setShowCustomForm(false);
+    setCustomTitle("");
+    setCustomTeamKey("team_a");
+    setCustomTeamName("TEAM A");
+    setCustomMembers([]);
+    setMemberInput("");
+  };
+
+  const createCustomSession = async () => {
+    if (!customTitle.trim() || !customTeamName.trim() || customMembers.length === 0) return;
+    setCreatingCustom(true);
+    setReviewMessage(null);
+    try {
+      const res = await apiFetchAuth("/review/sessions/create-custom", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: customTitle.trim(),
+          team_key: customTeamKey.trim(),
+          team_name: customTeamName.trim(),
+          member_names: customMembers,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const notFoundMsg = data.not_found && data.not_found.length > 0
+          ? ` (매칭 실패: ${data.not_found.join(", ")})`
+          : "";
+        setReviewMessage({ type: "success", text: `${customTeamName} 세션 생성 완료 — ${data.matched}명${notFoundMsg}` });
+        resetCustomForm();
+        fetchReviewSessions();
+      } else {
+        const notFoundMsg = data.not_found && data.not_found.length > 0
+          ? ` — 매칭 실패: ${data.not_found.join(", ")}`
+          : "";
+        setReviewMessage({ type: "error", text: `${data.error || "세션 생성 실패"}${notFoundMsg}` });
+      }
+    } catch {
+      setReviewMessage({ type: "error", text: "세션 생성에 실패했습니다." });
+    } finally {
+      setCreatingCustom(false);
+    }
+  };
+
+  // Bulk form helpers
+  const updateBulkTeam = (key: string, updater: (t: typeof bulkTeams[0]) => typeof bulkTeams[0]) => {
+    setBulkTeams((prev) => prev.map((t) => (t.key === key ? updater(t) : t)));
+  };
+  const addBulkMember = (key: string) => {
+    updateBulkTeam(key, (t) => {
+      const name = t.input.trim();
+      if (!name || t.members.includes(name)) return { ...t, input: "" };
+      return { ...t, members: [...t.members, name], input: "" };
+    });
+  };
+  const removeBulkMember = (key: string, name: string) => {
+    updateBulkTeam(key, (t) => ({ ...t, members: t.members.filter((m) => m !== name) }));
+  };
+  const setBulkInput = (key: string, value: string) => {
+    updateBulkTeam(key, (t) => ({ ...t, input: value }));
+  };
+  const resetBulkForm = () => {
+    setShowBulkForm(false);
+    setBulkTitle("");
+    setBulkTeams(PROJECT_TEAM_PRESETS.map((p) => ({ ...p, members: [...p.members], input: "" })));
+  };
+  const createBulkSessions = async () => {
+    if (!bulkTitle.trim()) return;
+    const validTeams = bulkTeams.filter((t) => t.members.length > 0);
+    if (validTeams.length === 0) return;
+    setCreatingBulk(true);
+    setReviewMessage(null);
+    try {
+      const res = await apiFetchAuth("/review/sessions/create-custom-bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: bulkTitle.trim(),
+          teams: validTeams.map((t) => ({
+            team_key: t.key,
+            team_name: t.name,
+            member_names: t.members,
+          })),
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const summary = (data.created || [])
+          .map((c: any) => {
+            const nf = c.not_found && c.not_found.length > 0 ? ` (실패 ${c.not_found.length}: ${c.not_found.join(", ")})` : "";
+            return `${c.team_name} ${c.matched}명${nf}`;
+          })
+          .join(" / ");
+        const skipText = (data.skipped || []).length > 0
+          ? ` — 건너뜀: ${data.skipped.map((s: any) => `${s.team_name}(${s.reason})`).join(", ")}`
+          : "";
+        setReviewMessage({ type: "success", text: `${data.total}개 팀 일괄 생성 완료 — ${summary}${skipText}` });
+        resetBulkForm();
+        fetchReviewSessions();
+      } else {
+        setReviewMessage({ type: "error", text: data.error || "일괄 생성 실패" });
+      }
+    } catch {
+      setReviewMessage({ type: "error", text: "일괄 생성에 실패했습니다." });
+    } finally {
+      setCreatingBulk(false);
+    }
+  };
+
+  const deleteReviewSession = async (sessionId: string, label: string) => {
+    if (!confirm(`"${label}" 세션을 삭제하시겠습니까?\n관련된 모든 리뷰 데이터도 함께 삭제됩니다.`)) return;
+    try {
+      const res = await apiFetchAuth(`/review/sessions/${sessionId}`, { method: "DELETE" });
+      if (res.ok) {
+        if (selectedReviewSession === sessionId) setSelectedReviewSession(null);
+        if (expandedReviewTeam === sessionId) setExpandedReviewTeam(null);
+        setReviewMessage({ type: "success", text: `"${label}" 세션이 삭제되었습니다.` });
+        fetchReviewSessions();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setReviewMessage({ type: "error", text: data.error || "삭제 실패" });
+      }
+    } catch {
+      setReviewMessage({ type: "error", text: "삭제 중 오류가 발생했습니다." });
+    }
+  };
+
+  const endReviewGroup = async (title: string) => {
+    if (!confirm(`"${title}" 피어리뷰를 종료하시겠습니까? 모든 팀의 세션이 종료됩니다.`)) return;
+    try {
+      const sessionsToEnd = reviewSessions.filter((s) => s.title === title && s.active);
+      await Promise.all(
+        sessionsToEnd.map((s) =>
+          apiFetchAuth(`/review/sessions/${s.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ active: false }),
+          })
+        )
+      );
+      setReviewMessage({ type: "success", text: `"${title}" 피어리뷰가 종료되었습니다.` });
+      fetchReviewSessions();
+    } catch (err) {
+      console.error(err);
+      setReviewMessage({ type: "error", text: "종료에 실패했습니다." });
+    }
+  };
+
+  const exportReviewCsv = async (sessionId: string, type: "common" | "leader") => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const url = `${API_BASE_URL}/review/sessions/${sessionId}/export?type=${type}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${publicAnonKey}`, "x-user-token": session.access_token },
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${sessionId}_${type}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const sendReviewReminder = async (sessionId: string) => {
+    setReviewMessage(null);
+    setReviewMessage({ type: "success", text: "리마인더 발송 중..." });
+    try {
+      const res = await apiFetchAuth(`/review/sessions/${sessionId}/remind`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setReviewMessage({ type: "success", text: data.message });
+      } else {
+        setReviewMessage({ type: "error", text: data.error || "발송 실패" });
+      }
+    } catch {
+      setReviewMessage({ type: "error", text: "리마인더 발송에 실패했습니다." });
     }
   };
 
@@ -114,14 +443,14 @@ export function AdminDashboard() {
     }
   };
 
-  const handleDeleteNews = async (id: string) => {
-    if (!confirm("정말로 이 뉴스를 삭제하시겠습니까?")) return;
+  const handleDeleteNotice = async (id: string) => {
+    if (!confirm("정말로 이 공지사항을 삭제하시겠습니까?")) return;
     try {
       const res = await apiFetchAuth(`/news/${id}`, { method: "DELETE" });
       if (res.ok) {
-        setNews(news.filter((n) => n.id !== id));
+        setNotices(notices.filter((n) => n.id !== id));
       } else {
-        alert("뉴스 삭제에 실패했습니다.");
+        alert("공지사항 삭제에 실패했습니다.");
       }
     } catch (error) {
       alert("인증이 만료되었습니다. 다시 로그인해주세요.");
@@ -177,16 +506,17 @@ export function AdminDashboard() {
     setShowAddModal(true);
   };
 
-  const handleEditNews = (newsItem: NewsItem) => {
-    setEditingId(newsItem.id);
+  const handleEditNotice = (noticeItem: NoticeItem) => {
+    setEditingId(noticeItem.id);
     setFormData({
-      title: newsItem.title,
-      content: newsItem.content,
-      date: newsItem.date,
-      category: newsItem.category,
+      title: noticeItem.title,
+      content: noticeItem.content,
+      date: noticeItem.date,
+      category: noticeItem.category,
+      pinned: noticeItem.pinned || false,
     });
-    setImagePreview(newsItem.imageUrl || null);
-    setActiveTab("news");
+    setImagePreview(noticeItem.imageUrl || null);
+    setActiveTab("notice");
     setShowAddModal(true);
   };
 
@@ -254,7 +584,7 @@ export function AdminDashboard() {
     }
   };
 
-  const handleUpdateNews = async (e: React.FormEvent) => {
+  const handleUpdateNotice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingId) return;
     setSubmitting(true);
@@ -268,17 +598,18 @@ export function AdminDashboard() {
         body: JSON.stringify({
           title: formData.title, content: formData.content,
           date: formData.date || new Date().toISOString().split('T')[0],
-          category: formData.category, ...(imageUrl && { imageUrl }),
+          category: formData.category, pinned: formData.pinned || false,
+          ...(imageUrl && { imageUrl }),
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setNews(news.map(n => n.id === editingId ? data.news : n));
+        setNotices(notices.map(n => n.id === editingId ? data.news : n));
         closeModal();
-        alert("뉴스가 수정되었습니다!");
+        alert("공지사항이 수정되었습니다!");
       } else {
-        alert("뉴스 수정에 실패했습니다.");
+        alert("공지사항 수정에 실패했습니다.");
       }
     } catch (error) {
       alert("인증이 만료되었습니다. 다시 로그인해주세요.");
@@ -364,7 +695,7 @@ export function AdminDashboard() {
       article.author?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredNews = news.filter((item) =>
+  const filteredNotices = notices.filter((item) =>
     item.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -436,7 +767,7 @@ export function AdminDashboard() {
     }
   };
 
-  const handleAddNews = async (e: React.FormEvent) => {
+  const handleAddNotice = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     try {
@@ -449,17 +780,18 @@ export function AdminDashboard() {
         body: JSON.stringify({
           title: formData.title, content: formData.content,
           date: formData.date || new Date().toISOString().split('T')[0],
-          category: formData.category, ...(imageUrl && { imageUrl }),
+          category: formData.category, pinned: formData.pinned || false,
+          ...(imageUrl && { imageUrl }),
         }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        setNews([data.news, ...news]);
+        setNotices([data.news, ...notices]);
         closeModal();
-        alert("뉴스가 추가되었습니다!");
+        alert("공지사항이 추가되었습니다!");
       } else {
-        alert("뉴스 추가에 실패했습니다.");
+        alert("공지사항 추가에 실패했습니다.");
       }
     } catch (error) {
       alert("인증이 만료되었습니다. 다시 로그인해주세요.");
@@ -547,14 +879,14 @@ export function AdminDashboard() {
     if (editingId) {
       switch (activeTab) {
         case "articles": return handleUpdateArticle;
-        case "news": return handleUpdateNews;
+        case "notice": return handleUpdateNotice;
         case "gallery": return handleUpdateGallery;
         case "activities": return handleUpdateActivity;
       }
     }
     switch (activeTab) {
       case "articles": return handleAddArticle;
-      case "news": return handleAddNews;
+      case "notice": return handleAddNotice;
       case "gallery": return handleAddGallery;
       case "activities": return handleAddActivity;
     }
@@ -564,7 +896,7 @@ export function AdminDashboard() {
     const action = editingId ? "수정" : "추가";
     switch (activeTab) {
       case "articles": return `아티클 ${action}`;
-      case "news": return `뉴스 ${action}`;
+      case "notice": return `공지사항 ${action}`;
       case "gallery": return `갤러리 ${action}`;
       case "activities": return `액티비티 ${action}`;
     }
@@ -573,7 +905,7 @@ export function AdminDashboard() {
   const getAddButtonLabel = () => {
     switch (activeTab) {
       case "articles": return "아티클 추가";
-      case "news": return "뉴스 추가";
+      case "notice": return "공지사항 추가";
       case "gallery": return "갤러리 추가";
       case "activities": return "액티비티 추가";
     }
@@ -582,7 +914,7 @@ export function AdminDashboard() {
   const getSearchPlaceholder = () => {
     switch (activeTab) {
       case "articles": return "아티클 검색...";
-      case "news": return "뉴스 검색...";
+      case "notice": return "공지사항 검색...";
       case "gallery": return "갤러리 검색...";
       case "activities": return "액티비티 검색...";
     }
@@ -613,13 +945,6 @@ export function AdminDashboard() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link
-                to="/admin/applications"
-                className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-medium"
-              >
-                <Users className="h-4 w-4" />
-                지원서 검토
-              </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 text-sm rounded-lg border border-border hover:bg-muted transition-colors"
@@ -653,8 +978,8 @@ export function AdminDashboard() {
                 <NewspaperIcon className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">뉴스</p>
-                <p className="text-xl font-bold">{news.length}</p>
+                <p className="text-xs text-muted-foreground">공지사항</p>
+                <p className="text-xl font-bold">{notices.length}</p>
               </div>
             </div>
           </div>
@@ -690,14 +1015,24 @@ export function AdminDashboard() {
             <div className="flex gap-6 overflow-x-auto">
               {([
                 { key: "articles" as TabType, icon: FileText, label: "아티클 관리" },
-                { key: "news" as TabType, icon: NewspaperIcon, label: "뉴스 관리" },
+                { key: "notice" as TabType, icon: NewspaperIcon, label: "공지사항 관리" },
                 { key: "gallery" as TabType, icon: ImageIcon, label: "갤러리 관리" },
                 { key: "activities" as TabType, icon: Calendar, label: "액티비티 관리" },
+                { key: "review" as TabType, icon: ClipboardCheck, label: "피어리뷰 관리" },
                 { key: "recruit" as TabType, icon: UserPlus, label: "리크루팅 설정" },
               ]).map(({ key, icon: Icon, label }) => (
                 <button
                   key={key}
-                  onClick={() => { setActiveTab(key); setSearchQuery(""); }}
+                  onClick={() => {
+                    if (key === "review" && !reviewUnlocked) {
+                      setActiveTab(key);
+                      setSearchQuery("");
+                      return;
+                    }
+                    setActiveTab(key);
+                    setSearchQuery("");
+                    if (key === "review") fetchReviewSessions();
+                  }}
                   className={`pb-4 px-2 font-medium transition-colors relative whitespace-nowrap ${
                     activeTab === key
                       ? "text-foreground"
@@ -717,23 +1052,25 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Search and Add */}
-        {activeTab !== "recruit" && <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={getSearchPlaceholder()}
-              className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-            />
+        {/* Search and Add (hidden for review/recruit tabs) */}
+        {activeTab !== "review" && activeTab !== "recruit" && (
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={getSearchPlaceholder()}
+                className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              />
+            </div>
+            <button className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors" onClick={() => { setFormData({}); setShowAddModal(true); }}>
+              <PlusCircle className="h-5 w-5" />
+              {getAddButtonLabel()}
+            </button>
           </div>
-          <button className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors" onClick={() => { setFormData({}); setShowAddModal(true); }}>
-            <PlusCircle className="h-5 w-5" />
-            {getAddButtonLabel()}
-          </button>
-        </div>}
+        )}
 
         {/* Content List */}
         {activeTab === "articles" && (
@@ -748,13 +1085,13 @@ export function AdminDashboard() {
           </div>
         )}
 
-        {activeTab === "news" && (
+        {activeTab === "notice" && (
           <div className="space-y-4">
-            {filteredNews.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">뉴스가 없습니다</div>
+            {filteredNotices.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">공지사항이 없습니다</div>
             ) : (
-              filteredNews.map((item) => (
-                <NewsCardAdmin key={item.id} news={item} onDelete={handleDeleteNews} onEdit={handleEditNews} />
+              filteredNotices.map((item) => (
+                <NoticeCardAdmin key={item.id} notice={item} onDelete={handleDeleteNotice} onEdit={handleEditNotice} />
               ))
             )}
           </div>
@@ -780,6 +1117,631 @@ export function AdminDashboard() {
               filteredActivities.map((item) => (
                 <ActivityCardAdmin key={item.id} item={item} onDelete={handleDeleteActivity} onEdit={handleEditActivity} />
               ))
+            )}
+          </div>
+        )}
+
+        {/* Review Management Tab - PIN Gate */}
+        {activeTab === "review" && !reviewUnlocked && (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-full max-w-sm text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6">
+                <Lock className="h-8 w-8 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">피어리뷰 접근 제한</h2>
+
+              <p className="text-sm text-muted-foreground mb-6">
+                {reviewHasPin === false
+                  ? "PIN이 아직 설정되지 않았습니다. 최초 PIN을 설정하세요."
+                  : "최고 관리자만 접근할 수 있습니다. PIN을 입력하세요."}
+              </p>
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                setReviewPinError("");
+
+                if (reviewHasPin === false) {
+                  // PIN 설정 모드
+                  if (reviewPin.length < 4) { setReviewPinError("PIN은 4자리 이상이어야 합니다."); return; }
+                  if (reviewPin !== newPinConfirm) { setReviewPinError("PIN이 일치하지 않습니다."); return; }
+                  try {
+                    const res = await apiFetchAuth("/review-pin", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ pin: reviewPin }),
+                    });
+                    if (res.ok) {
+                      setReviewUnlocked(true);
+                      setReviewPin("");
+                      setNewPinConfirm("");
+                      setReviewHasPin(true);
+                      fetchReviewSessions();
+                      alert("PIN이 설정되었습니다!");
+                    } else { setReviewPinError("PIN 설정에 실패했습니다."); }
+                  } catch { setReviewPinError("PIN 설정에 실패했습니다."); }
+                } else {
+                  // PIN 확인 모드
+                  try {
+                    const res = await apiFetchAuth("/review-pin/verify", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ pin: reviewPin }),
+                    });
+                    const data = await res.json();
+                    if (data.valid) {
+                      setReviewUnlocked(true);
+                      setReviewPin("");
+                      fetchReviewSessions();
+                    } else {
+                      setReviewPinError("PIN이 올바르지 않습니다.");
+                    }
+                  } catch { setReviewPinError("인증에 실패했습니다."); }
+                }
+              }} className="space-y-3">
+                <input type="password" value={reviewPin} onChange={(e) => setReviewPin(e.target.value)}
+                  placeholder={reviewHasPin === false ? "새 PIN (4자리 이상)" : "PIN 입력"}
+                  className="w-full px-4 py-3 bg-background border border-border rounded-lg text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" autoFocus />
+                {reviewHasPin === false && (
+                  <input type="password" value={newPinConfirm} onChange={(e) => setNewPinConfirm(e.target.value)} placeholder="PIN 확인"
+                    className="w-full px-4 py-3 bg-background border border-border rounded-lg text-center text-lg tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                )}
+                {reviewPinError && <p className="text-sm text-destructive">{reviewPinError}</p>}
+                <button type="submit" disabled={reviewHasPin === false ? (!reviewPin || !newPinConfirm) : !reviewPin}
+                  className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">
+                  {reviewHasPin === false ? "PIN 설정" : "확인"}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "review" && reviewUnlocked && (
+          <div className="space-y-6">
+            {/* Header with create button */}
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold">피어리뷰 세션</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowPinChange(!showPinChange)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  PIN 변경
+                </button>
+                {!showStartForm && !showCustomForm && !showBulkForm && (
+                  <>
+                    <button
+                      onClick={() => setShowCustomForm(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm border border-border rounded-lg font-medium hover:bg-accent transition-colors"
+                    >
+                      <Users className="w-4 h-4" />
+                      프로젝트 팀 세션 (단일)
+                    </button>
+                    <button
+                      onClick={() => setShowBulkForm(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm border border-border rounded-lg font-medium hover:bg-accent transition-colors"
+                    >
+                      <Users className="w-4 h-4" />
+                      프로젝트 팀 일괄 생성
+                    </button>
+                    <button
+                      onClick={() => setShowStartForm(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      새 피어리뷰 생성
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* PIN Change Form */}
+            {showPinChange && (
+              <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+                <h3 className="font-semibold text-sm">PIN 변경</h3>
+                <form onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (newPin.length < 4) { alert("PIN은 4자리 이상이어야 합니다."); return; }
+                  if (newPin !== newPinConfirm) { alert("PIN이 일치하지 않습니다."); return; }
+                  try {
+                    const res = await apiFetchAuth("/review-pin", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ pin: newPin }),
+                    });
+                    if (res.ok) {
+                      alert("PIN이 변경되었습니다!");
+                      setNewPin("");
+                      setNewPinConfirm("");
+                      setShowPinChange(false);
+                    }
+                  } catch { alert("PIN 변경에 실패했습니다."); }
+                }} className="flex gap-2">
+                  <input type="password" value={newPin} onChange={(e) => setNewPin(e.target.value)} placeholder="새 PIN (4자리 이상)"
+                    className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                  <input type="password" value={newPinConfirm} onChange={(e) => setNewPinConfirm(e.target.value)} placeholder="PIN 확인"
+                    className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                  <button type="submit" disabled={!newPin || !newPinConfirm}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50">변경</button>
+                  <button type="button" onClick={() => { setShowPinChange(false); setNewPin(""); setNewPinConfirm(""); }}
+                    className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-accent transition-colors">취소</button>
+                </form>
+              </div>
+            )}
+
+            {/* Start form (inline) */}
+            {showStartForm && (
+              <div className="bg-card border border-border rounded-xl p-5 space-y-3">
+                <h3 className="font-semibold text-sm">새 피어리뷰 세션 시작 (부서별 일괄)</h3>
+                <p className="text-xs text-muted-foreground">디스코드 역할 기반으로 모든 부서팀 세션이 일괄 생성됩니다.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newReviewTitle}
+                    onChange={(e) => setNewReviewTitle(e.target.value)}
+                    placeholder="세션 제목 (예: 4월 피어리뷰)"
+                    className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    disabled={startingReview}
+                    onKeyDown={(e) => { if (e.key === "Enter") startAllReviewSessions(); }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={startAllReviewSessions}
+                    disabled={startingReview || !newReviewTitle.trim()}
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {startingReview ? "생성 중..." : "생성"}
+                  </button>
+                  <button
+                    onClick={() => { setShowStartForm(false); setNewReviewTitle(""); }}
+                    className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-accent transition-colors"
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Custom (project-team) form */}
+            {showCustomForm && (
+              <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">프로젝트 팀 세션 만들기</h3>
+                  <button
+                    onClick={resetCustomForm}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  프리셋을 선택하거나 멤버를 자유롭게 추가/제거할 수 있습니다. 입력한 이름은 디스코드 닉네임과 매칭됩니다.
+                </p>
+
+                <div className="flex flex-wrap gap-2">
+                  {PROJECT_TEAM_PRESETS.map((p) => (
+                    <button
+                      key={p.key}
+                      onClick={() => applyPreset(p.key)}
+                      className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                        customTeamKey === p.key
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border hover:bg-accent"
+                      }`}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => {
+                      setCustomTeamKey("custom");
+                      setCustomTeamName("");
+                      setCustomMembers([]);
+                    }}
+                    className={`px-3 py-1.5 text-xs rounded-full border transition-colors ${
+                      customTeamKey === "custom"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-border hover:bg-accent"
+                    }`}
+                  >
+                    직접 입력
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">세션 제목</label>
+                    <input
+                      type="text"
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      placeholder="예: 4월 프로젝트 피어리뷰"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      disabled={creatingCustom}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">팀 이름</label>
+                    <input
+                      type="text"
+                      value={customTeamName}
+                      onChange={(e) => setCustomTeamName(e.target.value)}
+                      placeholder="예: TEAM A"
+                      className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      disabled={creatingCustom}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-2">
+                    멤버 ({customMembers.length}명)
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-2 min-h-[2rem]">
+                    {customMembers.length === 0 ? (
+                      <span className="text-xs text-muted-foreground italic py-1">멤버를 추가하세요</span>
+                    ) : (
+                      customMembers.map((name) => (
+                        <span
+                          key={name}
+                          className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent text-sm rounded-full"
+                        >
+                          {name}
+                          <button
+                            onClick={() => removeMember(name)}
+                            className="text-muted-foreground hover:text-destructive transition-colors"
+                            disabled={creatingCustom}
+                            title="제거"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={memberInput}
+                      onChange={(e) => setMemberInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addMember();
+                        }
+                      }}
+                      placeholder="멤버 이름 (Enter로 추가)"
+                      className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      disabled={creatingCustom}
+                    />
+                    <button
+                      onClick={addMember}
+                      disabled={creatingCustom || !memberInput.trim()}
+                      className="px-3 py-2 border border-border rounded-lg text-sm hover:bg-accent transition-colors disabled:opacity-50 inline-flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> 추가
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
+                    onClick={resetCustomForm}
+                    disabled={creatingCustom}
+                    className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-accent transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={createCustomSession}
+                    disabled={
+                      creatingCustom ||
+                      !customTitle.trim() ||
+                      !customTeamName.trim() ||
+                      customMembers.length === 0
+                    }
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {creatingCustom ? "생성 중..." : "세션 생성"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Bulk (all 4 project teams) form */}
+            {showBulkForm && (
+              <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-sm">프로젝트 팀 일괄 생성</h3>
+                  <button
+                    onClick={resetBulkForm}
+                    className="p-1 text-muted-foreground hover:text-foreground transition-colors"
+                    title="닫기"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {bulkTeams.length}개 팀의 멤버를 미리 채워뒀습니다. 필요하면 팀별로 추가/제거 후 한 번에 생성하세요.
+                </p>
+
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">세션 제목 (모든 팀 공통)</label>
+                  <input
+                    type="text"
+                    value={bulkTitle}
+                    onChange={(e) => setBulkTitle(e.target.value)}
+                    placeholder="예: 4월 프로젝트 피어리뷰"
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    disabled={creatingBulk}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {bulkTeams.map((team) => (
+                    <div key={team.key} className="border border-border rounded-lg p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{team.name}</span>
+                        <span className="text-xs text-muted-foreground">{team.members.length}명</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 min-h-[1.75rem]">
+                        {team.members.length === 0 ? (
+                          <span className="text-xs text-muted-foreground italic py-1">멤버 없음 (생성에서 제외됨)</span>
+                        ) : (
+                          team.members.map((name) => (
+                            <span
+                              key={name}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent text-xs rounded-full"
+                            >
+                              {name}
+                              <button
+                                onClick={() => removeBulkMember(team.key, name)}
+                                disabled={creatingBulk}
+                                className="text-muted-foreground hover:text-destructive transition-colors"
+                                title="제거"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))
+                        )}
+                      </div>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={team.input}
+                          onChange={(e) => setBulkInput(team.key, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addBulkMember(team.key);
+                            }
+                          }}
+                          placeholder="이름 추가"
+                          className="flex-1 px-2 py-1 bg-background border border-border rounded text-xs focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                          disabled={creatingBulk}
+                        />
+                        <button
+                          onClick={() => addBulkMember(team.key)}
+                          disabled={creatingBulk || !team.input.trim()}
+                          className="px-2 py-1 border border-border rounded text-xs hover:bg-accent transition-colors disabled:opacity-50"
+                        >
+                          <Plus className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
+                    onClick={resetBulkForm}
+                    disabled={creatingBulk}
+                    className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-accent transition-colors"
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={createBulkSessions}
+                    disabled={
+                      creatingBulk ||
+                      !bulkTitle.trim() ||
+                      bulkTeams.every((t) => t.members.length === 0)
+                    }
+                    className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+                  >
+                    {creatingBulk
+                      ? "생성 중..."
+                      : `${bulkTeams.filter((t) => t.members.length > 0).length}개 팀 일괄 생성`}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {reviewMessage && (
+              <div className={`p-3 rounded-lg text-sm ${
+                reviewMessage.type === "error"
+                  ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                  : "bg-green-50 border border-green-200 text-green-700"
+              }`}>
+                {reviewMessage.text}
+              </div>
+            )}
+
+            {/* Grouped Session List */}
+            {reviewSessions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">리뷰 세션이 없습니다.</div>
+            ) : (
+              (() => {
+                // Group sessions by title
+                const groups: Record<string, { title: string; active: boolean; started_at: string; sessions: any[] }> = {};
+                reviewSessions.forEach((sess) => {
+                  const key = sess.title;
+                  if (!groups[key]) {
+                    groups[key] = { title: sess.title, active: sess.active, started_at: sess.started_at, sessions: [] };
+                  }
+                  groups[key].sessions.push(sess);
+                  if (sess.active) groups[key].active = true;
+                });
+
+                return Object.entries(groups).map(([key, group]) => (
+                  <div key={key} className="bg-card border border-border rounded-xl overflow-hidden">
+                    {/* Group header */}
+                    <div className="p-5 flex items-center justify-between">
+                      <button
+                        onClick={() => setExpandedReviewGroup(expandedReviewGroup === key ? null : key)}
+                        className="flex items-center gap-3 hover:opacity-70 transition-opacity"
+                      >
+                        <svg className={`w-5 h-5 text-muted-foreground transition-transform ${expandedReviewGroup === key ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                        <h3 className="font-semibold text-lg">{group.title}</h3>
+                        <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                          group.active ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+                        }`}>
+                          {group.active ? "진행 중" : "종료"}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {group.sessions.length}개 팀
+                        </span>
+                      </button>
+                      {group.active && (
+                        <button
+                          onClick={() => endReviewGroup(group.title)}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-destructive/30 text-destructive bg-destructive/5 rounded-lg hover:bg-destructive/10 transition-colors"
+                        >
+                          <StopCircle className="w-3.5 h-3.5" />
+                          피어리뷰 종료
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Expanded team list */}
+                    {expandedReviewGroup === key && (
+                      <div className="border-t border-border">
+                        {group.sessions.map((sess) => (
+                          <div key={sess.id} className="border-b border-border/50 last:border-0">
+                            {/* Team header */}
+                            <button
+                              onClick={() => {
+                                if (expandedReviewTeam === sess.id) {
+                                  setExpandedReviewTeam(null);
+                                } else {
+                                  setExpandedReviewTeam(sess.id);
+                                  fetchReviewStatus(sess.id);
+                                }
+                              }}
+                              className="w-full px-5 py-4 flex items-center justify-between hover:bg-accent/20 transition-colors text-left"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium">{sess.team_name}</span>
+                                <span className="text-sm text-muted-foreground">{sess.members?.length || 0}명</span>
+                              </div>
+                              <svg className={`w-4 h-4 text-muted-foreground transition-transform ${expandedReviewTeam === sess.id ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            </button>
+
+                            {/* Team detail */}
+                            {expandedReviewTeam === sess.id && (
+                              <div className="px-5 pb-5 space-y-4">
+                                {/* Action buttons */}
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    onClick={() => sendReviewReminder(sess.id)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                                  >
+                                    <Bell className="w-3.5 h-3.5" />
+                                    리마인드 발송
+                                  </button>
+                                  <button
+                                    onClick={() => exportReviewCsv(sess.id, "common")}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-border rounded-lg hover:bg-accent transition-colors"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    공통 리뷰 CSV
+                                  </button>
+                                  <button
+                                    onClick={() => exportReviewCsv(sess.id, "leader")}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-amber-200 text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    리더 평가 CSV
+                                  </button>
+                                  <button
+                                    onClick={() => deleteReviewSession(sess.id, `${sess.title} — ${sess.team_name}`)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-2 text-sm border border-destructive/30 text-destructive bg-destructive/5 rounded-lg hover:bg-destructive/10 transition-colors ml-auto"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                    세션 삭제
+                                  </button>
+                                  {/* 세션 종료는 그룹 레벨에서 처리 */}
+                                </div>
+
+                                {/* Status table */}
+                                {reviewStatusLoading && selectedReviewSession === sess.id ? (
+                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="w-4 h-4 animate-spin" /> 불러오는 중...
+                                  </div>
+                                ) : selectedReviewSession === sess.id && (
+                                  <div className="overflow-x-auto border border-border rounded-lg">
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="border-b border-border bg-muted/30 text-xs text-muted-foreground">
+                                          <th className="text-left font-medium px-4 py-2.5 min-w-[200px]">이름</th>
+                                          <th className="text-center font-medium px-4 py-2.5 min-w-[100px]">공통 리뷰</th>
+                                          <th className="text-center font-medium px-4 py-2.5 min-w-[100px]">리더 평가</th>
+                                          <th className="text-center font-medium px-4 py-2.5 min-w-[80px]">상태</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {reviewStatusData.map((member: any) => (
+                                          <tr key={member.discord_id} className="border-b border-border/50 last:border-0">
+                                            <td className="px-4 py-2.5">
+                                              <div className="flex items-center gap-2">
+                                                <span className="font-medium">{member.display_name}</span>
+                                                {member.is_leader && (
+                                                  <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">Leader</span>
+                                                )}
+                                              </div>
+                                            </td>
+                                            <td className="text-center px-4 py-2.5">
+                                              <span className={member.common_done >= member.common_total ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                                {member.common_done}/{member.common_total}
+                                              </span>
+                                            </td>
+                                            <td className="text-center px-4 py-2.5">
+                                              <span className={member.leader_done >= member.leader_total ? "text-green-600 font-medium" : "text-muted-foreground"}>
+                                                {member.leader_done}/{member.leader_total}
+                                              </span>
+                                            </td>
+                                            <td className="text-center px-4 py-2.5">
+                                              {member.complete ? (
+                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                                                  <Check className="w-3 h-3" /> 완료
+                                                </span>
+                                              ) : (
+                                                <span className="inline-flex items-center gap-1 text-xs font-medium text-destructive bg-destructive/10 px-2 py-1 rounded-full">
+                                                  <X className="w-3 h-3" /> 미완료
+                                                </span>
+                                              )}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ));
+              })()
             )}
           </div>
         )}
@@ -847,24 +1809,24 @@ export function AdminDashboard() {
                 </>
               )}
 
-              {/* News Form */}
-              {activeTab === "news" && (
+              {/* Notice Form */}
+              {activeTab === "notice" && (
                 <>
                   <div>
                     <label className="block text-sm font-medium mb-2">제목 *</label>
                     <input type="text" required value={formData.title || ""} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="뉴스 제목" />
+                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="공지사항 제목" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">내용 *</label>
                     <textarea required value={formData.content || ""} onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" rows={6} placeholder="뉴스 내용" />
+                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" rows={6} placeholder="공지사항 내용" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-2">카테고리 *</label>
                     <div className="flex gap-2">
                       <select
-                        value={["Recruitment", "Event", "Project", "Announcement"].includes(formData.category || "") ? formData.category : "__custom__"}
+                        value={["일반", "모집", "행사", "프로젝트", "긴급"].includes(formData.category || "") ? formData.category : "__custom__"}
                         onChange={(e) => {
                           if (e.target.value === "__custom__") {
                             setFormData({ ...formData, category: "" });
@@ -875,19 +1837,28 @@ export function AdminDashboard() {
                         className="w-1/2 px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                       >
                         <option value="">카테고리 선택</option>
-                        <option value="Recruitment">Recruitment</option>
-                        <option value="Event">Event</option>
-                        <option value="Project">Project</option>
-                        <option value="Announcement">Announcement</option>
+                        <option value="일반">일반</option>
+                        <option value="모집">모집</option>
+                        <option value="행사">행사</option>
+                        <option value="프로젝트">프로젝트</option>
+                        <option value="긴급">긴급</option>
                         <option value="__custom__">직접 입력</option>
                       </select>
-                      {(!formData.category || !["Recruitment", "Event", "Project", "Announcement"].includes(formData.category)) && (
+                      {(!formData.category || !["일반", "모집", "행사", "프로젝트", "긴급"].includes(formData.category)) && (
                         <input type="text" required value={formData.category === "__custom__" ? "" : formData.category || ""}
                           onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                           placeholder="카테고리 직접 입력"
                           className="w-1/2 px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
                       )}
                     </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" checked={formData.pinned || false} onChange={(e) => setFormData({ ...formData, pinned: e.target.checked })}
+                        className="sr-only peer" />
+                      <div className="w-11 h-6 bg-border peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    </label>
+                    <span className="text-sm font-medium">상단 고정</span>
                   </div>
                 </>
               )}
@@ -956,7 +1927,7 @@ export function AdminDashboard() {
               {/* Image Upload (shared) */}
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  이미지 첨부 {activeTab === "gallery" ? "*" : "(선택)"}
+                  {activeTab === "gallery" ? "이미지 첨부 *" : "썸네일 첨부 (선택)"}
                 </label>
                 <input type="file" accept="image/*" onChange={handleImageChange}
                   className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary file:mr-4 file:py-1 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
@@ -1018,21 +1989,22 @@ function ArticleCard({ article, onDelete, onEdit }: { article: Article, onDelete
   );
 }
 
-function NewsCardAdmin({ news, onDelete, onEdit }: { news: NewsItem, onDelete: (id: string) => void, onEdit: (news: NewsItem) => void }) {
+function NoticeCardAdmin({ notice, onDelete, onEdit }: { notice: NoticeItem, onDelete: (id: string) => void, onEdit: (notice: NoticeItem) => void }) {
   return (
-    <div className="p-6 bg-card border border-border rounded-xl hover:shadow-md transition-all">
+    <div className={`p-6 bg-card border border-border rounded-xl hover:shadow-md transition-all ${notice.pinned ? "border-primary/30 bg-primary/[0.02]" : ""}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-3">
-            <span className="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">{news.category}</span>
-            <span className="text-sm text-muted-foreground">{news.date}</span>
+            {notice.pinned && <span className="px-2 py-0.5 bg-primary text-primary-foreground text-xs rounded font-bold">고정</span>}
+            <span className="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">{notice.category}</span>
+            <span className="text-sm text-muted-foreground">{notice.date}</span>
           </div>
-          <h3 className="text-lg font-medium mb-2">{news.title}</h3>
-          <p className="text-sm text-muted-foreground">{news.content}</p>
+          <h3 className="text-lg font-medium mb-2">{notice.title}</h3>
+          <p className="text-sm text-muted-foreground">{notice.content}</p>
         </div>
         <div className="flex gap-2">
-          <button className="p-2 hover:bg-muted rounded-lg transition-colors" onClick={() => onEdit(news)}><Edit2 className="h-4 w-4" /></button>
-          <button className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors" onClick={() => onDelete(news.id)}><Trash2 className="h-4 w-4" /></button>
+          <button className="p-2 hover:bg-muted rounded-lg transition-colors" onClick={() => onEdit(notice)}><Edit2 className="h-4 w-4" /></button>
+          <button className="p-2 hover:bg-destructive/10 text-destructive rounded-lg transition-colors" onClick={() => onDelete(notice.id)}><Trash2 className="h-4 w-4" /></button>
         </div>
       </div>
     </div>
