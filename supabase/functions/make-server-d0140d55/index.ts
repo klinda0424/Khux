@@ -1846,4 +1846,166 @@ app.get("/make-server-d0140d55/review/config", (c) => {
   });
 });
 
+// ============ When To Meet ============
+
+// Get all guild members with schedule status
+app.get("/make-server-d0140d55/when-to-meet/members", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    let allMembers: any[] = [];
+    let after = "0";
+    while (true) {
+      const res = await fetch(
+        `https://discord.com/api/v10/guilds/${DISCORD_GUILD_ID}/members?limit=1000&after=${after}`,
+        { headers: { Authorization: `Bot ${botToken}` } }
+      );
+      if (!res.ok) break;
+      const batch = await res.json();
+      if (batch.length === 0) break;
+      allMembers = allMembers.concat(batch);
+      if (batch.length < 1000) break;
+      after = batch[batch.length - 1].user.id;
+    }
+
+    const humanMembers = allMembers.filter((m: any) => !m.user.bot);
+    const members: any[] = [];
+
+    for (const m of humanMembers) {
+      const displayName = m.nick || m.user.global_name || m.user.username;
+      if (!displayName) continue;
+
+      const discordId = m.user.id;
+      const schedule = await kv.get(`wtm_schedule:${discordId}`);
+
+      let hasSchedule = false;
+      let scheduleUntil: string | undefined;
+      if (schedule?.availability) {
+        const dates = Object.keys(schedule.availability).filter(
+          (d) => (schedule.availability[d] as number[]).length > 0
+        );
+        hasSchedule = dates.length > 0;
+        if (hasSchedule) {
+          scheduleUntil = dates.sort().at(-1)?.slice(5).replace("-", "/");
+        }
+      }
+
+      members.push({
+        discord_id: discordId,
+        display_name: displayName,
+        avatar: m.user.avatar
+          ? `https://cdn.discordapp.com/avatars/${discordId}/${m.user.avatar}.png`
+          : null,
+        is_leader: (displayName as string).includes("Leader"),
+        has_schedule: hasSchedule,
+        schedule_until: scheduleUntil,
+      });
+    }
+
+    return c.json({ members: { all: members } });
+  } catch (error) {
+    console.log(`Error fetching WTM members: ${error}`);
+    return c.json({ error: "Failed to fetch members" }, 500);
+  }
+});
+
+// Get individual schedule
+app.get("/make-server-d0140d55/when-to-meet/schedule/:discordId", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const discordId = c.req.param("discordId");
+    const schedule = await kv.get(`wtm_schedule:${discordId}`);
+    return c.json({ schedule: schedule ?? null });
+  } catch (error) {
+    console.log(`Error fetching WTM schedule: ${error}`);
+    return c.json({ error: "Failed to fetch schedule" }, 500);
+  }
+});
+
+// Save own schedule
+app.post("/make-server-d0140d55/when-to-meet/schedule", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const { availability } = await c.req.json();
+    if (!availability || typeof availability !== "object") {
+      return c.json({ error: "availability required" }, 400);
+    }
+
+    const schedule = {
+      discord_id: user.discord_id,
+      display_name: user.display_name,
+      availability,
+      updated_at: new Date().toISOString(),
+    };
+
+    await kv.set(`wtm_schedule:${user.discord_id}`, schedule);
+    return c.json({ success: true, schedule });
+  } catch (error) {
+    console.log(`Error saving WTM schedule: ${error}`);
+    return c.json({ error: "Failed to save schedule" }, 500);
+  }
+});
+
+// Send Discord DMs to selected members
+app.post("/make-server-d0140d55/when-to-meet/dm", async (c) => {
+  try {
+    const user = await getReviewUser(c.req.header("x-review-token"));
+    if (!user) return c.json({ error: "Not authenticated" }, 401);
+
+    const { discord_ids, message } = await c.req.json();
+    if (!Array.isArray(discord_ids) || !message) {
+      return c.json({ error: "discord_ids and message required" }, 400);
+    }
+
+    const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
+    if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
+
+    const sent: string[] = [];
+    const failed: string[] = [];
+
+    for (const discordId of discord_ids) {
+      try {
+        const dmRes = await fetch("https://discord.com/api/v10/users/@me/channels", {
+          method: "POST",
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ recipient_id: discordId }),
+        });
+
+        if (!dmRes.ok) { failed.push(discordId); continue; }
+
+        const dmChannel = await dmRes.json();
+        const msgRes = await fetch(`https://discord.com/api/v10/channels/${dmChannel.id}/messages`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bot ${botToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ content: message }),
+        });
+
+        if (msgRes.ok) sent.push(discordId);
+        else failed.push(discordId);
+      } catch {
+        failed.push(discordId);
+      }
+    }
+
+    return c.json({ sent, failed });
+  } catch (error) {
+    console.log(`Error sending WTM DMs: ${error}`);
+    return c.json({ error: "Failed to send DMs" }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

@@ -13,6 +13,9 @@ import { ReviewDashboard } from "./pages/review-dashboard";
 import { ReviewForm } from "./pages/review-form";
 import { AdminReview } from "./pages/admin-review";
 import { Notice } from "./pages/notice";
+import { WhenToMeet } from "./pages/when-to-meet";
+import { WhenToMeetMembers } from "./pages/when-to-meet-members";
+import { WhenToMeetSchedule } from "./pages/when-to-meet-schedule";
 
 export const router = createBrowserRouter([
   {
@@ -47,6 +50,10 @@ export const router = createBrowserRouter([
     Component: ReviewLogin,
   },
   {
+    path: "/members/login",
+    Component: ReviewLogin,
+  },
+  {
     path: "/auth/discord/callback",
     Component: DiscordCallback,
   },
@@ -57,5 +64,17 @@ export const router = createBrowserRouter([
   {
     path: "/review/:sessionId/:targetId",
     Component: ReviewForm,
+  },
+  {
+    path: "/when-to-meet",
+    Component: WhenToMeet,
+  },
+  {
+    path: "/when-to-meet/members",
+    Component: WhenToMeetMembers,
+  },
+  {
+    path: "/when-to-meet/schedule/:discordId",
+    Component: WhenToMeetSchedule,
   },
 ]);
