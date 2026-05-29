@@ -14,6 +14,7 @@ import { ReviewForm } from "./pages/review-form";
 import { AdminReview } from "./pages/admin-review";
 import { Notice } from "./pages/notice";
 import { Members } from "./pages/members";
+import { MembersNotice } from "./pages/members-notice";
 import { WhenToMeet } from "./pages/when-to-meet";
 import { WhenToMeetMembers } from "./pages/when-to-meet-members";
 import { WhenToMeetSchedule } from "./pages/when-to-meet-schedule";
@@ -57,6 +58,10 @@ export const router = createBrowserRouter([
   {
     path: "/members",
     Component: Members,
+  },
+  {
+    path: "/members/notice",
+    Component: MembersNotice,
   },
   {
     path: "/auth/discord/callback",
