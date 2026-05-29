@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router";
-import { ArrowLeft, Download, StopCircle, RefreshCw, Check, X, Play, Lock, Users, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, StopCircle, RefreshCw, Check, X, Play, Lock, Users, Plus, Trash2, Crown } from "lucide-react";
 import { supabase, apiFetchAuth, API_BASE_URL } from "../../utils/supabase-client";
 import { publicAnonKey } from "/utils/supabase/info";
 
@@ -56,9 +56,11 @@ export function AdminReview() {
   const [customTeamKey, setCustomTeamKey] = useState("team_a");
   const [customTeamName, setCustomTeamName] = useState("TEAM A");
   const [customMembers, setCustomMembers] = useState<string[]>([]);
+  const [customLeaders, setCustomLeaders] = useState<string[]>([]);
   const [memberInput, setMemberInput] = useState("");
   const [creatingCustom, setCreatingCustom] = useState(false);
   const [customResult, setCustomResult] = useState<string | null>(null);
+  const [deptLeaderInput, setDeptLeaderInput] = useState("");
 
   // PIN gate
   const [unlocked, setUnlocked] = useState(false);
@@ -176,10 +178,14 @@ export function AdminReview() {
     setStarting(true);
     setStartResult(null);
     try {
+      const leaderNames = deptLeaderInput
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
       const res = await apiFetchAuth("/review/sessions/start-all", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTitle.trim() }),
+        body: JSON.stringify({ title: newTitle.trim(), leader_names: leaderNames }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -188,6 +194,7 @@ export function AdminReview() {
           .join(", ");
         setStartResult(`세션 생성 완료: ${summary}`);
         setNewTitle("");
+        setDeptLeaderInput("");
         setShowStartForm(false);
         fetchSessions();
       } else {
@@ -206,6 +213,7 @@ export function AdminReview() {
     setCustomTeamKey(preset.key);
     setCustomTeamName(preset.name);
     setCustomMembers([...preset.members]);
+    setCustomLeaders([]);
   }
 
   function addMember() {
@@ -221,6 +229,13 @@ export function AdminReview() {
 
   function removeMember(name: string) {
     setCustomMembers(customMembers.filter((m) => m !== name));
+    setCustomLeaders(customLeaders.filter((m) => m !== name));
+  }
+
+  function toggleCustomLeader(name: string) {
+    setCustomLeaders((prev) =>
+      prev.includes(name) ? prev.filter((m) => m !== name) : [...prev, name]
+    );
   }
 
   function resetCustomForm() {
@@ -229,6 +244,7 @@ export function AdminReview() {
     setCustomTeamKey("team_a");
     setCustomTeamName("TEAM A");
     setCustomMembers([]);
+    setCustomLeaders([]);
     setMemberInput("");
   }
 
@@ -245,6 +261,7 @@ export function AdminReview() {
           team_key: customTeamKey.trim(),
           team_name: customTeamName.trim(),
           member_names: customMembers,
+          leader_names: customLeaders,
         }),
       });
       const data = await res.json();
@@ -565,11 +582,27 @@ export function AdminReview() {
                 {starting ? "생성 중..." : "시작"}
               </button>
               <button
-                onClick={() => { setShowStartForm(false); setNewTitle(""); }}
+                onClick={() => { setShowStartForm(false); setNewTitle(""); setDeptLeaderInput(""); }}
                 className="px-4 py-2.5 border border-border rounded-lg text-sm hover:bg-accent transition-colors"
               >
                 취소
               </button>
+            </div>
+            <div className="space-y-1.5">
+              <label className="block text-xs text-muted-foreground inline-flex items-center gap-1">
+                <Crown className="w-3 h-3 text-amber-500" /> 리더 직접 지정 (선택)
+              </label>
+              <input
+                type="text"
+                value={deptLeaderInput}
+                onChange={(e) => setDeptLeaderInput(e.target.value)}
+                placeholder="리더 이름들 (쉼표로 구분, 예: 홍길동, 김철수)"
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                disabled={starting}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                비워두면 디스코드 닉네임의 "Leader" 표시로 자동 인식됩니다.
+              </p>
             </div>
           </div>
         )}
@@ -651,28 +684,46 @@ export function AdminReview() {
             {/* Members */}
             <div>
               <label className="block text-xs text-muted-foreground mb-2">
-                멤버 ({customMembers.length}명)
+                멤버 ({customMembers.length}명) <span className="text-[11px]">— 왕관 클릭 시 PM 지정</span>
               </label>
               <div className="flex flex-wrap gap-2 mb-2 min-h-[2rem]">
                 {customMembers.length === 0 ? (
                   <span className="text-xs text-muted-foreground italic py-1">멤버를 추가하세요</span>
                 ) : (
-                  customMembers.map((name) => (
-                    <span
-                      key={name}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-accent text-sm rounded-full"
-                    >
-                      {name}
-                      <button
-                        onClick={() => removeMember(name)}
-                        className="text-muted-foreground hover:text-destructive transition-colors"
-                        disabled={creatingCustom}
-                        title="제거"
+                  customMembers.map((name) => {
+                    const isPm = customLeaders.includes(name);
+                    return (
+                      <span
+                        key={name}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-sm rounded-full border ${
+                          isPm
+                            ? "bg-amber-50 border-amber-300 text-amber-900"
+                            : "bg-accent border-transparent"
+                        }`}
                       >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))
+                        <button
+                          onClick={() => toggleCustomLeader(name)}
+                          disabled={creatingCustom}
+                          className={`transition-colors ${
+                            isPm ? "text-amber-500" : "text-muted-foreground hover:text-amber-500"
+                          }`}
+                          title={isPm ? "PM 해제" : "PM으로 지정"}
+                        >
+                          <Crown className="w-3.5 h-3.5" />
+                        </button>
+                        {name}
+                        {isPm && <span className="text-[10px] font-semibold">PM</span>}
+                        <button
+                          onClick={() => removeMember(name)}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          disabled={creatingCustom}
+                          title="제거"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    );
+                  })
                 )}
               </div>
               <div className="flex gap-2">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router";
-import { LogOut, ArrowLeft, Users, Crown, ChevronRight, Check, Layers, Calendar } from "lucide-react";
+import { LogOut, ArrowLeft, Users, Crown, ChevronRight, Check, Layers } from "lucide-react";
 import { useReviewUser, reviewApiFetch } from "../../utils/review-auth";
 import { MemberCard } from "../components/review/member-card";
 import { ReviewProgress } from "../components/review/review-progress";
@@ -149,11 +149,11 @@ export function ReviewDashboard() {
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
           <Link
-            to="/"
+            to="/members"
             className="inline-flex items-center gap-2 text-sm text-foreground/60 hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            메인
+            Members
           </Link>
           <div className="flex items-center gap-3">
             <div className="text-right">
@@ -177,25 +177,6 @@ export function ReviewDashboard() {
             <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
-
-        {/* When To Meet entry */}
-        <button
-          onClick={() => navigate("/when-to-meet")}
-          className="w-full flex items-center justify-between p-5 bg-card border border-border rounded-xl hover:border-primary/50 hover:bg-accent/30 transition-all text-left group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-              <Calendar className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold">When To Meet</h2>
-              <p className="text-sm text-foreground/60 mt-0.5">
-                학회원들의 가능한 시간을 확인하고 공통 일정을 찾아보세요.
-              </p>
-            </div>
-          </div>
-          <ChevronRight className="w-5 h-5 text-foreground/60 flex-shrink-0" />
-        </button>
 
         {/* Session list view */}
         {!session && mySessions.length > 0 && (

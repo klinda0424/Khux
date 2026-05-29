@@ -1555,8 +1555,9 @@ app.post("/make-server-d0140d55/review/sessions/start-all", async (c) => {
     const { data: { user } } = await supabase.auth.getUser(adminToken);
     if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-    const { title } = await c.req.json();
+    const { title, leader_names } = await c.req.json();
     if (!title) return c.json({ error: "title required" }, 400);
+    const leaderNames: string[] = Array.isArray(leader_names) ? leader_names : [];
 
     const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
     if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
@@ -1590,10 +1591,13 @@ app.post("/make-server-d0140d55/review/sessions/start-all", async (c) => {
         .filter((m: any) => !m.user.bot && m.roles.includes(teamConfig.role_id))
         .map((m: any) => {
           const displayName = m.nick || m.user.global_name || m.user.username;
+          const isLeader = leaderNames.length > 0
+            ? isLeaderByNameList(displayName, leaderNames)
+            : (displayName?.includes("Leader") ?? false);
           return {
             discord_id: m.user.id,
             display_name: displayName,
-            is_leader: displayName?.includes("Leader") ?? false,
+            is_leader: isLeader,
           };
         });
 
@@ -1650,6 +1654,20 @@ function matchMemberByName(searchName: string, guildMembers: any[]): any | null 
   return null;
 }
 
+// Helper: check whether a member's display name matches any of the admin-specified leader names
+function isLeaderByNameList(displayName: string, leaderNames: string[]): boolean {
+  if (!leaderNames || leaderNames.length === 0) return false;
+  const normalize = (s: string) =>
+    (s || "").replace(/\s+/g, "").replace(/leader/gi, "").toLowerCase().trim();
+  const target = normalize(displayName);
+  if (!target) return false;
+  for (const name of leaderNames) {
+    const n = normalize(name);
+    if (n && (target === n || target.includes(n) || n.includes(target))) return true;
+  }
+  return false;
+}
+
 // Create a custom session by member name list (for project teams)
 app.post("/make-server-d0140d55/review/sessions/create-custom", async (c) => {
   try {
@@ -1657,10 +1675,11 @@ app.post("/make-server-d0140d55/review/sessions/create-custom", async (c) => {
     const { data: { user } } = await supabase.auth.getUser(adminToken);
     if (!user) return c.json({ error: "Unauthorized" }, 401);
 
-    const { title, team_key, team_name, member_names } = await c.req.json();
+    const { title, team_key, team_name, member_names, leader_names } = await c.req.json();
     if (!title || !team_key || !team_name || !Array.isArray(member_names) || member_names.length === 0) {
       return c.json({ error: "title, team_key, team_name, member_names required" }, 400);
     }
+    const leaderNames: string[] = Array.isArray(leader_names) ? leader_names : [];
 
     const botToken = Deno.env.get("DISCORD_BOT_TOKEN");
     if (!botToken) return c.json({ error: "Bot token not configured" }, 500);
@@ -1699,10 +1718,13 @@ app.post("/make-server-d0140d55/review/sessions/create-custom", async (c) => {
       // Skip duplicates
       if (matched.some((x) => x.discord_id === m.user.id)) continue;
       const displayName = m.nick || m.user.global_name || m.user.username;
+      const isLeader = leaderNames.length > 0
+        ? (isLeaderByNameList(name, leaderNames) || isLeaderByNameList(displayName, leaderNames))
+        : (displayName?.includes("Leader") ?? false);
       matched.push({
         discord_id: m.user.id,
         display_name: displayName,
-        is_leader: displayName?.includes("Leader") ?? false,
+        is_leader: isLeader,
       });
     }
 
@@ -1776,11 +1798,12 @@ app.post("/make-server-d0140d55/review/sessions/create-custom-bulk", async (c) =
     const skipped: any[] = [];
 
     for (const team of teams) {
-      const { team_key, team_name, member_names } = team;
+      const { team_key, team_name, member_names, leader_names } = team;
       if (!team_key || !team_name || !Array.isArray(member_names) || member_names.length === 0) {
         skipped.push({ team_name: team_name || team_key, reason: "invalid input" });
         continue;
       }
+      const teamLeaderNames: string[] = Array.isArray(leader_names) ? leader_names : [];
 
       const matched: any[] = [];
       const notFound: string[] = [];
@@ -1794,10 +1817,13 @@ app.post("/make-server-d0140d55/review/sessions/create-custom-bulk", async (c) =
         }
         if (matched.some((x) => x.discord_id === m.user.id)) continue;
         const displayName = m.nick || m.user.global_name || m.user.username;
+        const isLeader = teamLeaderNames.length > 0
+          ? (isLeaderByNameList(name, teamLeaderNames) || isLeaderByNameList(displayName, teamLeaderNames))
+          : (displayName?.includes("Leader") ?? false);
         matched.push({
           discord_id: m.user.id,
           display_name: displayName,
-          is_leader: displayName?.includes("Leader") ?? false,
+          is_leader: isLeader,
         });
       }
 
