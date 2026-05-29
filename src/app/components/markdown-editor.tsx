@@ -207,6 +207,7 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       setUploadStatus("");
       const altText = file.name === "image.png" ? "image" : file.name.replace(/\.[^.]+$/, "");
       insertAtCursor(`\n![${altText}](${url})\n`);
+      setMode("preview");
     }
   }, [insertAtCursor]);
 
@@ -249,6 +250,7 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
     setUploading(false);
     setUploadStatus("");
     insertAtCursor(processed);
+    setMode("preview");
   }, [insertAtCursor]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
