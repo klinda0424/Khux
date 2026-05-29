@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
-import { ArrowLeft, Send, Check } from "lucide-react";
+import { useNavigate, useParams } from "react-router";
+import { ArrowLeft, Send, Check, Crown } from "lucide-react";
 import { useReviewUser, reviewApiFetch } from "../../utils/review-auth";
 import { ScoreSelector } from "../components/review/score-selector";
 
@@ -20,12 +20,11 @@ interface SessionData {
 export function ReviewForm() {
   const navigate = useNavigate();
   const { sessionId, targetId } = useParams();
-  const [searchParams] = useSearchParams();
-  const type = searchParams.get("type") || "common";
 
   const { user, loading: authLoading } = useReviewUser();
   const [session, setSession] = useState<SessionData | null>(null);
-  const [scores, setScores] = useState<(number | null)[]>([null, null, null]);
+  const [commonScores, setCommonScores] = useState<(number | null)[]>([]);
+  const [leaderScores, setLeaderScores] = useState<(number | null)[]>([]);
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -43,24 +42,29 @@ export function ReviewForm() {
 
     async function fetchData() {
       try {
-        // Load session
         const sessionRes = await reviewApiFetch(`/review/sessions/${sessionId}`);
         if (!sessionRes.ok) throw new Error("Session not found");
         const { session: sess } = await sessionRes.json();
         setSession(sess);
 
-        // Load existing review if any
+        setCommonScores(new Array(sess.criteria.length).fill(null));
+        setLeaderScores(new Array(sess.leader_criteria.length).fill(null));
+
         const reviewsRes = await reviewApiFetch(`/review/sessions/${sessionId}/my-reviews`);
         if (reviewsRes.ok) {
           const data = await reviewsRes.json();
-          const reviews = type === "leader" ? data.leader_reviews : data.reviews;
-          const existing = reviews.find((r: any) => r.target_id === targetId);
-          if (existing) {
-            setScores(existing.scores);
-            setComment(existing.comment || "");
+          const existingCommon = (data.reviews || []).find((r: any) => r.target_id === targetId);
+          if (existingCommon) {
+            setCommonScores(existingCommon.scores);
+            if (existingCommon.comment) setComment(existingCommon.comment);
+          }
+          const existingLeader = (data.leader_reviews || []).find((r: any) => r.target_id === targetId);
+          if (existingLeader) {
+            setLeaderScores(existingLeader.scores);
+            if (!existingCommon && existingLeader.comment) setComment(existingLeader.comment);
           }
         }
-      } catch (err) {
+      } catch {
         setError("데이터를 불러오는데 실패했습니다.");
       } finally {
         setLoading(false);
@@ -68,7 +72,7 @@ export function ReviewForm() {
     }
 
     fetchData();
-  }, [user, sessionId, targetId, type]);
+  }, [user, sessionId, targetId]);
 
   if (authLoading || loading) {
     return (
@@ -81,8 +85,11 @@ export function ReviewForm() {
   if (!user || !session) return null;
 
   const target = session.members.find((m) => m.discord_id === targetId);
-  const criteria = type === "leader" ? session.leader_criteria : session.criteria;
-  const allScoresFilled = scores.every((s) => s !== null);
+  const isLeader = target?.is_leader ?? false;
+
+  const commonFilled = commonScores.length > 0 && commonScores.every((s) => s !== null);
+  const leaderFilled = !isLeader || (leaderScores.length > 0 && leaderScores.every((s) => s !== null));
+  const allScoresFilled = commonFilled && leaderFilled;
 
   const handleSubmit = async () => {
     if (!allScoresFilled) {
@@ -98,24 +105,34 @@ export function ReviewForm() {
     setError("");
 
     try {
-      const endpoint =
-        type === "leader"
-          ? `/review/sessions/${sessionId}/leader-reviews`
-          : `/review/sessions/${sessionId}/reviews`;
-
-      const res = await reviewApiFetch(endpoint, {
+      const commonRes = await reviewApiFetch(`/review/sessions/${sessionId}/reviews`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           target_discord_id: targetId,
-          scores,
+          scores: commonScores,
           comment,
         }),
       });
+      if (!commonRes.ok) {
+        const data = await commonRes.json().catch(() => ({}));
+        throw new Error(data.error || "공통 리뷰 제출 실패");
+      }
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "제출 실패");
+      if (isLeader) {
+        const leaderRes = await reviewApiFetch(`/review/sessions/${sessionId}/leader-reviews`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target_discord_id: targetId,
+            scores: leaderScores,
+            comment,
+          }),
+        });
+        if (!leaderRes.ok) {
+          const data = await leaderRes.json().catch(() => ({}));
+          throw new Error(data.error || "리더 평가 제출 실패");
+        }
       }
 
       setSubmitted(true);
@@ -154,9 +171,7 @@ export function ReviewForm() {
             돌아가기
           </button>
           <div className="border-l border-border pl-4">
-            <p className="font-medium">
-              {type === "leader" ? "리더 평가" : "공통 피어리뷰"}
-            </p>
+            <p className="font-medium">피어리뷰</p>
             <p className="text-sm text-foreground/60">{session.title}</p>
           </div>
         </div>
@@ -168,30 +183,61 @@ export function ReviewForm() {
           <p className="text-sm text-foreground/60 mb-2">평가 대상</p>
           <div className="flex items-center gap-3">
             <p className="text-2xl font-bold">{target?.display_name || "Unknown"}</p>
-            {target?.is_leader && (
-              <span className="text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+            {isLeader && (
+              <span className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+                <Crown className="w-3 h-3" />
                 Leader
               </span>
             )}
           </div>
         </div>
 
-        {/* Score Selectors */}
+        {/* Common Criteria */}
         <div className="bg-card border border-border rounded-xl p-6 lg:p-8 space-y-8">
-          {criteria.map((criterion, index) => (
+          <div>
+            <h2 className="font-semibold mb-1">공통 평가 항목</h2>
+            <p className="text-xs text-foreground/60">팀원에게 공통으로 적용되는 항목입니다.</p>
+          </div>
+          {session.criteria.map((criterion, index) => (
             <ScoreSelector
               key={criterion.name}
               name={criterion.name}
               description={criterion.desc}
-              value={scores[index]}
+              value={commonScores[index] ?? null}
               onChange={(score) => {
-                const newScores = [...scores];
-                newScores[index] = score;
-                setScores(newScores);
+                const next = [...commonScores];
+                next[index] = score;
+                setCommonScores(next);
               }}
             />
           ))}
         </div>
+
+        {/* Leader Criteria (only for leader targets) */}
+        {isLeader && session.leader_criteria.length > 0 && (
+          <div className="bg-card border border-amber-200 rounded-xl p-6 lg:p-8 space-y-8">
+            <div className="flex items-center gap-2">
+              <Crown className="w-4 h-4 text-amber-500" />
+              <div>
+                <h2 className="font-semibold">리더 추가 평가 항목</h2>
+                <p className="text-xs text-foreground/60">리더에게만 적용되는 항목입니다.</p>
+              </div>
+            </div>
+            {session.leader_criteria.map((criterion, index) => (
+              <ScoreSelector
+                key={criterion.name}
+                name={criterion.name}
+                description={criterion.desc}
+                value={leaderScores[index] ?? null}
+                onChange={(score) => {
+                  const next = [...leaderScores];
+                  next[index] = score;
+                  setLeaderScores(next);
+                }}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Comment */}
         <div className="bg-card border border-border rounded-xl p-6 lg:p-8">

@@ -25,8 +25,8 @@ interface MyReview {
 }
 
 interface SessionProgress {
-  common: { done: number; total: number };
-  leader: { done: number; total: number };
+  done: number;
+  total: number;
 }
 
 export function ReviewDashboard() {
@@ -70,15 +70,15 @@ export function ReviewDashboard() {
               const res = await reviewApiFetch(`/review/sessions/${sess.id}/my-reviews`);
               if (!res.ok) return null;
               const { reviews, leader_reviews } = await res.json();
-              const otherCount = sess.members.filter((m) => m.discord_id !== user!.discord_id).length;
-              const leaderCount = sess.members.filter((m) => m.is_leader && m.discord_id !== user!.discord_id).length;
-              return [
-                sess.id,
-                {
-                  common: { done: (reviews || []).length, total: otherCount },
-                  leader: { done: (leader_reviews || []).length, total: leaderCount },
-                },
-              ] as [string, SessionProgress];
+              const reviewedSet = new Set<string>((reviews || []).map((r: any) => r.target_id));
+              const leaderReviewedSet = new Set<string>((leader_reviews || []).map((r: any) => r.target_id));
+              const others = sess.members.filter((m) => m.discord_id !== user!.discord_id);
+              const doneCount = others.filter((m) => {
+                const commonDone = reviewedSet.has(m.discord_id);
+                const leaderDone = !m.is_leader || leaderReviewedSet.has(m.discord_id);
+                return commonDone && leaderDone;
+              }).length;
+              return [sess.id, { done: doneCount, total: others.length }] as [string, SessionProgress];
             } catch {
               return null;
             }
@@ -196,9 +196,7 @@ export function ReviewDashboard() {
             </p>
             {mySessions.map((sess) => {
               const prog = sessionProgress[sess.id];
-              const commonDone = prog ? prog.common.done >= prog.common.total : false;
-              const leaderDone = prog ? prog.leader.done >= prog.leader.total : false;
-              const allDone = !!prog && commonDone && leaderDone;
+              const allDone = !!prog && prog.done >= prog.total;
               return (
                 <button
                   key={sess.id}
@@ -220,23 +218,10 @@ export function ReviewDashboard() {
                       {sess.team_name} — {sess.members?.length || 0}명
                     </p>
                     {prog && (
-                      <div className="mt-2 flex gap-3 text-xs">
-                        <span
-                          className={
-                            commonDone ? "text-green-600 font-medium" : "text-foreground/60"
-                          }
-                        >
-                          공통 {prog.common.done}/{prog.common.total}
+                      <div className="mt-2 text-xs">
+                        <span className={allDone ? "text-green-600 font-medium" : "text-foreground/60"}>
+                          진행률 {prog.done}/{prog.total}
                         </span>
-                        {prog.leader.total > 0 && (
-                          <span
-                            className={
-                              leaderDone ? "text-green-600 font-medium" : "text-foreground/60"
-                            }
-                          >
-                            리더 {prog.leader.done}/{prog.leader.total}
-                          </span>
-                        )}
                       </div>
                     )}
                   </div>
@@ -273,9 +258,7 @@ export function ReviewDashboard() {
                 <div className="flex gap-2 flex-wrap">
                   {mySessions.map((s) => {
                     const prog = sessionProgress[s.id];
-                    const allDone = !!prog &&
-                      prog.common.done >= prog.common.total &&
-                      prog.leader.done >= prog.leader.total;
+                    const allDone = !!prog && prog.done >= prog.total;
                     const isCurrent = s.id === session.id;
                     return (
                       <button
@@ -296,7 +279,7 @@ export function ReviewDashboard() {
                         <span className="font-medium">{s.team_name}</span>
                         {prog && (
                           <span className="opacity-70">
-                            {prog.common.done + prog.leader.done}/{prog.common.total + prog.leader.total}
+                            {prog.done}/{prog.total}
                           </span>
                         )}
                       </button>
@@ -325,63 +308,45 @@ export function ReviewDashboard() {
 
               <div className="mt-4 space-y-3">
                 <ReviewProgress
-                  label="공통 피어리뷰"
-                  done={reviewedIds.size}
+                  label="피어리뷰 진행률"
+                  done={otherMembers.filter((m) => {
+                    const commonDone = reviewedIds.has(m.discord_id);
+                    const leaderDone = !m.is_leader || leaderReviewedIds.has(m.discord_id);
+                    return commonDone && leaderDone;
+                  }).length}
                   total={otherMembers.length}
                 />
-                {leaders.length > 0 && (
-                  <ReviewProgress
-                    label="리더 평가"
-                    done={leaderReviewedIds.size}
-                    total={leaders.length}
-                  />
-                )}
               </div>
             </div>
 
-            {/* Common Review */}
+            {/* Members */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Users className="w-4 h-4 text-primary" />
-                <h2 className="font-semibold">공통 피어리뷰</h2>
+                <h2 className="font-semibold">팀원 피어리뷰</h2>
+                {leaders.length > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[11px] text-amber-700">
+                    <Crown className="w-3 h-3 text-amber-500" />
+                    리더는 추가 평가 항목 포함
+                  </span>
+                )}
               </div>
               <div className="space-y-2">
-                {otherMembers.map((member) => (
-                  <MemberCard
-                    key={member.discord_id}
-                    name={member.display_name}
-                    isLeader={member.is_leader}
-                    completed={reviewedIds.has(member.discord_id)}
-                    onClick={() =>
-                      navigate(`/review/${session.id}/${member.discord_id}?type=common`)
-                    }
-                  />
-                ))}
+                {otherMembers.map((member) => {
+                  const commonDone = reviewedIds.has(member.discord_id);
+                  const leaderDone = !member.is_leader || leaderReviewedIds.has(member.discord_id);
+                  return (
+                    <MemberCard
+                      key={member.discord_id}
+                      name={member.display_name}
+                      isLeader={member.is_leader}
+                      completed={commonDone && leaderDone}
+                      onClick={() => navigate(`/review/${session.id}/${member.discord_id}`)}
+                    />
+                  );
+                })}
               </div>
             </div>
-
-            {/* Leader Review */}
-            {leaders.length > 0 && (
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Crown className="w-4 h-4 text-amber-500" />
-                  <h2 className="font-semibold">리더 평가</h2>
-                </div>
-                <div className="space-y-2">
-                  {leaders.map((leader) => (
-                    <MemberCard
-                      key={`leader-${leader.discord_id}`}
-                      name={leader.display_name}
-                      isLeader
-                      completed={leaderReviewedIds.has(leader.discord_id)}
-                      onClick={() =>
-                        navigate(`/review/${session.id}/${leader.discord_id}?type=leader`)
-                      }
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
       </div>
