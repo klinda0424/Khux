@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router";
 import {
   LogOut,
@@ -23,13 +23,16 @@ import {
   UserPlus,
   Lock,
   Plus,
-  Crown
+  Crown,
+  Clock,
 } from "lucide-react";
 import { supabase, apiFetch, apiFetchAuth, uploadImage, API_BASE_URL } from "../../utils/supabase-client";
 import { publicAnonKey } from "/utils/supabase/info";
 import type { Article, NoticeItem, GalleryItem, Activity } from "../data/mock-data";
 import { MarkdownEditor } from "../components/markdown-editor";
 import { AdminRecruitTab } from "./admin-recruit";
+
+const ARTICLE_DRAFT_KEY = "khux_article_draft_new";
 
 type TabType = "articles" | "notice" | "gallery" | "activities" | "review" | "recruit";
 
@@ -56,6 +59,11 @@ export function AdminDashboard() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+
+  // Draft auto-save
+  const [draftStatus, setDraftStatus] = useState("");
+  const [savedDraft, setSavedDraft] = useState<any>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Review access control
   const [reviewUnlocked, setReviewUnlocked] = useState(false);
@@ -122,6 +130,25 @@ export function AdminDashboard() {
       fetchData();
     }
   }, [authenticated]);
+
+  // Auto-save article draft (only for new articles)
+  useEffect(() => {
+    if (!showAddModal || activeTab !== "articles" || editingId) return;
+    if (!formData.title && !formData.content) return;
+
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(ARTICLE_DRAFT_KEY, JSON.stringify({ ...formData, savedAt: new Date().toISOString() }));
+        const time = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+        setDraftStatus(`자동저장됨 ${time}`);
+      } catch {}
+    }, 2000);
+
+    return () => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [formData, showAddModal, activeTab, editingId]);
 
   // Check review PIN status when review tab is selected
   useEffect(() => {
@@ -757,11 +784,61 @@ export function AdminDashboard() {
     setImagePreview(null);
   };
 
+  // ── Draft helpers ──────────────────────────────────────────────────────────
+
+  const saveDraft = (data: any) => {
+    try {
+      localStorage.setItem(ARTICLE_DRAFT_KEY, JSON.stringify({ ...data, savedAt: new Date().toISOString() }));
+      const time = new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+      setDraftStatus(`저장됨 ${time}`);
+    } catch {}
+  };
+
+  const handleManualSave = () => saveDraft(formData);
+
+  const restoreDraft = () => {
+    if (!savedDraft) return;
+    setFormData({
+      title: savedDraft.title || "",
+      excerpt: savedDraft.excerpt || "",
+      content: savedDraft.content || "",
+      author: savedDraft.author || "",
+      team: savedDraft.team || "",
+      date: savedDraft.date || "",
+      tags: savedDraft.tags || "",
+    });
+    setSavedDraft(null);
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(ARTICLE_DRAFT_KEY);
+    setSavedDraft(null);
+  };
+
+  const openAddModal = () => {
+    setFormData({});
+    setEditingId(null);
+    clearImage();
+    setDraftStatus("");
+    // Check for saved draft (only for new articles)
+    try {
+      const raw = localStorage.getItem(ARTICLE_DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.title || parsed.content) setSavedDraft(parsed);
+      }
+    } catch {}
+    setShowAddModal(true);
+  };
+
   const closeModal = () => {
     setShowAddModal(false);
     setFormData({});
     setEditingId(null);
+    setSavedDraft(null);
+    setDraftStatus("");
     clearImage();
+    if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
   };
 
   // ============ Add Handlers ============
@@ -787,6 +864,7 @@ export function AdminDashboard() {
       if (res.ok) {
         const data = await res.json();
         setArticles([data.article, ...articles]);
+        localStorage.removeItem(ARTICLE_DRAFT_KEY);
         closeModal();
         alert("아티클이 추가되었습니다!");
       } else {
@@ -1098,7 +1176,10 @@ export function AdminDashboard() {
                 className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
               />
             </div>
-            <button className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors" onClick={() => { setFormData({}); setShowAddModal(true); }}>
+            <button
+              className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              onClick={activeTab === "articles" ? openAddModal : () => { setFormData({}); setShowAddModal(true); }}
+            >
               <PlusCircle className="h-5 w-5" />
               {getAddButtonLabel()}
             </button>
@@ -1844,6 +1925,33 @@ export function AdminDashboard() {
               </button>
             </div>
 
+            {/* Draft restore banner */}
+            {savedDraft && activeTab === "articles" && !editingId && (
+              <div className="mx-6 mt-4 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  <span>
+                    이전에 작성하던 내용이 있습니다.
+                    {savedDraft.savedAt && (
+                      <span className="ml-1 opacity-70">
+                        ({new Date(savedDraft.savedAt).toLocaleString("ko-KR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button type="button" onClick={restoreDraft}
+                    className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                    불러오기
+                  </button>
+                  <button type="button" onClick={discardDraft}
+                    className="px-3 py-1 text-xs border border-blue-300 text-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors">
+                    무시
+                  </button>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={getSubmitHandler()} className="p-6 space-y-4">
               {/* Article Form */}
               {activeTab === "articles" && (
@@ -1864,6 +1972,8 @@ export function AdminDashboard() {
                       value={formData.content || ""}
                       onChange={(content) => setFormData({ ...formData, content })}
                       placeholder="마크다운으로 작성하세요... 이미지는 드래그 & 드롭 또는 Ctrl+V로 붙여넣기할 수 있습니다."
+                      draftStatus={!editingId ? draftStatus : undefined}
+                      onManualSave={!editingId ? handleManualSave : undefined}
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ImageIcon, Eye, Edit2, Bold, Italic, Heading1, Heading2, List, ListOrdered, Minus, Link, Quote } from "lucide-react";
+import { ImageIcon, Eye, Edit2, Bold, Italic, Heading1, Heading2, List, ListOrdered, Minus, Link, Quote, Save } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -27,6 +27,8 @@ interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  draftStatus?: string;
+  onManualSave?: () => void;
 }
 
 // ── Resize handle (left / right) ──────────────────────────────────────────
@@ -127,7 +129,7 @@ function ResizableImage({ src, alt, style, onResize }: {
 }
 
 // ── Main editor ────────────────────────────────────────────────────────────
-export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorProps) {
+export function MarkdownEditor({ value, onChange, placeholder, draftStatus, onManualSave }: MarkdownEditorProps) {
   const [mode, setMode] = useState<"write" | "preview">("write");
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
@@ -206,7 +208,7 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
       setUploading(false);
       setUploadStatus("");
       const altText = file.name === "image.png" ? "image" : file.name.replace(/\.[^.]+$/, "");
-      insertAtCursor(`\n![${altText}](${url})\n`);
+      insertAtCursor(`\n<figure>\n<img src="${url}" alt="${altText}" />\n<figcaption></figcaption>\n</figure>\n`);
       setMode("preview");
     }
   }, [insertAtCursor]);
@@ -307,6 +309,19 @@ export function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorP
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden"
             onChange={(e) => e.target.files && handleImageUpload(e.target.files)} />
+          {onManualSave && (
+            <>
+              <div className="w-px h-5 bg-border mx-1" />
+              <button type="button" onClick={onManualSave} title="임시저장"
+                className="flex items-center gap-1 px-2 py-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground text-xs">
+                <Save className="h-3.5 w-3.5" />
+                임시저장
+              </button>
+              {draftStatus && (
+                <span className="text-xs text-muted-foreground whitespace-nowrap">{draftStatus}</span>
+              )}
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
@@ -375,6 +390,20 @@ export function MarkdownRenderer({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
+          figure: ({ children, ...props }) => (
+            <figure className="my-6 not-prose flex flex-col items-center" {...props as any}>
+              {children}
+            </figure>
+          ),
+          figcaption: ({ children }) => {
+            const text = typeof children === "string" ? children : "";
+            if (!children || !text.trim()) return null;
+            return (
+              <figcaption className="text-center text-sm text-muted-foreground mt-2 italic px-4 max-w-prose">
+                {children}
+              </figcaption>
+            );
+          },
           p: ({ children, ...props }) => {
             const arr = Array.isArray(children) ? children : [children];
             const imgs = arr.filter((c: any) => c?.type === "img" || c?.props?.node?.tagName === "img");
