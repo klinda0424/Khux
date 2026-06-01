@@ -167,7 +167,7 @@ export function NoticeList({
           <div
             key={notice.id}
             className={`cursor-pointer transition-colors ${
-              notice.important ? "bg-primary/5" : "bg-background"
+              notice.important ? "bg-green-50 dark:bg-primary/5" : "bg-background"
             } hover:bg-accent/40`}
             onClick={() => onExpandChange(expandedId === notice.id ? null : notice.id)}
           >

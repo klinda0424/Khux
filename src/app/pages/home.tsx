@@ -170,7 +170,7 @@ export function Home() {
 
         <FadeInSection>
           <div className="relative z-10 max-w-5xl">
-            <span className="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-primary border border-primary/30 px-3.5 py-1.5 rounded-full mb-7">
+            <span className="inline-block text-xs font-semibold tracking-[0.12em] uppercase text-primary border border-primary/50 dark:border-primary/30 px-3.5 py-1.5 rounded-full mb-7">
               About KHUX
             </span>
             <h1 className="text-5xl sm:text-7xl lg:text-[100px] font-black leading-[0.95] tracking-[-0.04em] mb-8">
@@ -359,10 +359,10 @@ export function Home() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Tags:</span>
               <button onClick={() => setSelectedTag(null)}
-                className={`text-sm px-3.5 py-1.5 rounded-full transition-all ${selectedTag === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>All</button>
+                className={`text-sm px-3.5 py-1.5 rounded-full transition-all ${selectedTag === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>All</button>
               {allTags.map((tag) => (
                 <button key={tag} onClick={() => setSelectedTag(tag)}
-                  className={`text-sm px-3.5 py-1.5 rounded-full transition-all ${selectedTag === tag ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>{tag}</button>
+                  className={`text-sm px-3.5 py-1.5 rounded-full transition-all ${selectedTag === tag ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>{tag}</button>
               ))}
             </div>
           </div>
@@ -420,10 +420,10 @@ export function Home() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">카테고리:</span>
               <button onClick={() => setSelectedActivityCategory(null)}
-                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedActivityCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>전체</button>
+                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedActivityCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>전체</button>
               {activityCategories.map((c) => (
                 <button key={c} onClick={() => setSelectedActivityCategory(c)}
-                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedActivityCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>{c}</button>
+                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedActivityCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>{c}</button>
               ))}
             </div>
           </div>
@@ -441,7 +441,7 @@ export function Home() {
                   )}
                   <div className="flex-1 p-6 md:p-8">
                     <div className="flex items-center gap-3 mb-3">
-                      <span className="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full font-semibold">{activity.category}</span>
+                      <span className="text-xs px-3 py-1 bg-green-100 dark:bg-primary/10 text-primary rounded-full font-semibold">{activity.category}</span>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground"><Calendar className="h-4 w-4" />{activity.date}</div>
                     </div>
                     <h3 className="text-xl md:text-2xl font-bold mb-3">{activity.title}</h3>
@@ -480,10 +480,10 @@ export function Home() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">카테고리:</span>
               <button onClick={() => setSelectedGalleryCategory(null)}
-                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedGalleryCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>전체</button>
+                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedGalleryCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>전체</button>
               {galleryCategories.map((c) => (
                 <button key={c} onClick={() => setSelectedGalleryCategory(c)}
-                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedGalleryCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>{c}</button>
+                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedGalleryCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>{c}</button>
               ))}
             </div>
           </div>
@@ -588,10 +588,10 @@ export function Home() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Category:</span>
               <button onClick={() => setSelectedNoticeCategory(null)}
-                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedNoticeCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>All</button>
+                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedNoticeCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>All</button>
               {noticeCategories.map((c) => (
                 <button key={c} onClick={() => setSelectedNoticeCategory(c)}
-                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedNoticeCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>{c}</button>
+                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedNoticeCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>{c}</button>
               ))}
             </div>
           </div>
@@ -614,13 +614,13 @@ export function Home() {
             return (
               <FadeInSection key={item.id}>
                 <div
-                  className={`group grid grid-cols-1 sm:grid-cols-[auto_1fr_140px_100px] gap-2 sm:gap-4 items-center px-6 py-4 border-b border-border last:border-b-0 hover:bg-surface2/60 transition-colors cursor-pointer ${item.pinned ? "bg-primary/[0.03]" : ""}`}
+                  className={`group grid grid-cols-1 sm:grid-cols-[auto_1fr_140px_100px] gap-2 sm:gap-4 items-center px-6 py-4 border-b border-border last:border-b-0 hover:bg-surface2/60 transition-colors cursor-pointer ${item.pinned ? "bg-green-50/80 dark:bg-primary/[0.03]" : ""}`}
                   onClick={() => setSelectedNotice(item)}
                 >
                   {/* Number / Pin */}
                   <span className="hidden sm:flex w-16 justify-center">
                     {item.pinned ? (
-                      <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded">고정</span>
+                      <span className="text-xs font-bold text-primary bg-green-100 dark:bg-primary/10 px-2 py-0.5 rounded">고정</span>
                     ) : (
                       <span className="text-sm text-muted-foreground">{num}</span>
                     )}
@@ -634,7 +634,7 @@ export function Home() {
 
                   {/* Category */}
                   <div className="flex sm:justify-center">
-                    <span className="text-xs px-2.5 py-1 bg-primary/10 text-primary rounded-full font-medium">{item.category}</span>
+                    <span className="text-xs px-2.5 py-1 bg-green-100 dark:bg-primary/10 text-primary rounded-full font-medium">{item.category}</span>
                   </div>
 
                   {/* Date */}

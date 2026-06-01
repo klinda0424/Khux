@@ -46,7 +46,7 @@ export function MembersNotice() {
             <ArrowLeft className="h-4 w-4" />
             Members Only
           </Link>
-          <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-primary/15 text-primary border border-primary/30 font-medium">
+          <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-green-100 dark:bg-primary/15 text-primary border border-green-300 dark:border-primary/30 font-medium">
             <Lock className="w-3 h-3" />
             Members Only
           </span>

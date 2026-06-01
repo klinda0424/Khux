@@ -1046,7 +1046,7 @@ export function AdminDashboard() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-primary/10 flex items-center justify-center">
                 <Users className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -1071,9 +1071,9 @@ export function AdminDashboard() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="p-5 bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 rounded-xl">
+          <div className="p-5 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/30 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
                 <FileText className="h-5 w-5 text-blue-600" />
               </div>
               <div>
@@ -1083,9 +1083,9 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="p-5 bg-gradient-to-br from-green-500/10 to-transparent border border-green-500/20 rounded-xl">
+          <div className="p-5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/30 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
                 <NewspaperIcon className="h-5 w-5 text-green-600" />
               </div>
               <div>
@@ -1095,9 +1095,9 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="p-5 bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 rounded-xl">
+          <div className="p-5 bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/30 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-500/20 flex items-center justify-center">
                 <ImageIcon className="h-5 w-5 text-purple-600" />
               </div>
               <div>
@@ -1107,9 +1107,9 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="p-5 bg-gradient-to-br from-orange-500/10 to-transparent border border-orange-500/20 rounded-xl">
+          <div className="p-5 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/30 rounded-xl">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-500/20 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center">
                 <Calendar className="h-5 w-5 text-orange-600" />
               </div>
               <div>
@@ -1727,7 +1727,7 @@ export function AdminDashboard() {
             {reviewMessage && (
               <div className={`p-3 rounded-lg text-sm ${
                 reviewMessage.type === "error"
-                  ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                  ? "bg-red-50 dark:bg-destructive/10 border border-red-200 dark:border-destructive/20 text-destructive"
                   : "bg-green-50 border border-green-200 text-green-700"
               }`}>
                 {reviewMessage.text}

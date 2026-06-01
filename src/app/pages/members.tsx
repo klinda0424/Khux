@@ -61,7 +61,7 @@ export function Members() {
             className="bg-card border border-border rounded-xl p-6 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+              <div className="p-3 bg-green-100 dark:bg-primary/10 rounded-lg group-hover:bg-green-200 dark:group-hover:bg-primary/20 transition-colors">
                 <ClipboardCheck className="h-6 w-6 text-primary" />
               </div>
               <div>
@@ -78,8 +78,8 @@ export function Members() {
             className="bg-card border border-border rounded-xl p-6 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-green-500/10 rounded-lg group-hover:bg-green-500/20 transition-colors">
-                <Calendar className="h-6 w-6 text-green-500" />
+              <div className="p-3 bg-green-100 dark:bg-green-500/10 rounded-lg group-hover:bg-green-200 dark:group-hover:bg-green-500/20 transition-colors">
+                <Calendar className="h-6 w-6 text-green-700 dark:text-green-500" />
               </div>
               <div>
                 <h2 className="font-semibold text-lg">When To Meet</h2>
@@ -95,8 +95,8 @@ export function Members() {
             className="bg-card border border-border rounded-xl p-6 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
           >
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-blue-500/10 rounded-lg group-hover:bg-blue-500/20 transition-colors">
-                <Bell className="h-6 w-6 text-blue-500" />
+              <div className="p-3 bg-blue-100 dark:bg-blue-500/10 rounded-lg group-hover:bg-blue-200 dark:group-hover:bg-blue-500/20 transition-colors">
+                <Bell className="h-6 w-6 text-blue-700 dark:text-blue-500" />
               </div>
               <div>
                 <h2 className="font-semibold text-lg">공지사항</h2>
