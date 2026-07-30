@@ -123,11 +123,20 @@ export function Home() {
   });
   const filteredNotices = selectedNoticeCategory ? sortedNotices.filter((n) => n.category === selectedNoticeCategory) : sortedNotices;
 
+  // 갤러리는 카테고리로 나누지 않고, 사진 업로드 전까지 목업 데이터도 비워서 노출.
+  // 복원하려면 아래 주석 처리된 원본 줄로 교체하면 됨.
   const galleryCategories = Array.from(new Set(gallery.map((g) => g.category)));
-  const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
+  const displayGallery: GalleryItem[] = [];
+  const filteredGallery = displayGallery;
+  // const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
 
-  const activityCategories = Array.from(new Set(activities.map((a) => a.category)));
-  const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
+  // 실제 활동 데이터 연동 전까지 카테고리를 '프로젝트'/'해커톤' 두 개로 고정하고
+  // 데이터는 비워서 노출. 복원하려면 아래 주석 처리된 원본 줄로 교체하면 됨.
+  const activityCategories = ["프로젝트", "해커톤"];
+  // const activityCategories = Array.from(new Set(activities.map((a) => a.category)));
+  const displayActivities: Activity[] = [];
+  const filteredActivities = selectedActivityCategory ? displayActivities.filter((a) => a.category === selectedActivityCategory) : displayActivities;
+  // const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
 
   // Team data for about.html style
   const teamCards = [
@@ -481,6 +490,8 @@ export function Home() {
             KHUX의 다양한 활동 현장을 사진으로 만나보세요.
           </p>
 
+        {/* 갤러리 카테고리 필터 숨김 처리 (카테고리로 나누지 않고 전체 노출).
+            복원하려면 아래 블록의 주석을 해제하면 됨.
           <div className="mb-10">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">카테고리:</span>
@@ -492,6 +503,7 @@ export function Home() {
               ))}
             </div>
           </div>
+          */}
         </FadeInSection>
 
         {filteredGallery.length === 0 ? (
