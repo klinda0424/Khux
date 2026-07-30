@@ -115,8 +115,13 @@ export function Home() {
     return matchSearch;
   });
 
-  const noticeCategories = Array.from(new Set(notices.map((n) => n.category)));
-  const sortedNotices = [...notices].sort((a, b) => {
+  // 홈 화면 공지사항 위젯은 실제 백엔드(/news) 데이터를 그대로 노출하고 있었음.
+  // DB 레코드는 삭제하지 않고, 배포판에는 노출되지 않도록 표시용 배열만 비움.
+  // 복원하려면 displayNotices 를 notices 로 교체하면 됨.
+  const displayNotices: NoticeItem[] = [];
+  const noticeCategories = Array.from(new Set(displayNotices.map((n) => n.category)));
+  // const noticeCategories = Array.from(new Set(notices.map((n) => n.category)));
+  const sortedNotices = [...displayNotices].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
     return new Date(b.date).getTime() - new Date(a.date).getTime();
