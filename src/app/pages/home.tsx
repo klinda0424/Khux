@@ -106,11 +106,13 @@ export function Home() {
   const scrollGalleryTo = useCallback((i: number) => emblaApi?.scrollTo(i), [emblaApi]);
 
   // Filtered data
+  // 태그별 분류 없이 스크롤하면 전체가 다 보이도록 태그 필터링 비활성화.
+  // 다시 켜려면 matchTag 조건을 return 문에 추가하면 됨.
   const allTags = Array.from(new Set(articles.flatMap((a) => a.tags || [])));
   const filteredArticles = articles.filter((a) => {
     const matchSearch = a.title?.toLowerCase().includes(articleSearch.toLowerCase()) || a.excerpt?.toLowerCase().includes(articleSearch.toLowerCase());
-    const matchTag = selectedTag ? a.tags?.includes(selectedTag) : true;
-    return matchSearch && matchTag;
+    // const matchTag = selectedTag ? a.tags?.includes(selectedTag) : true;
+    return matchSearch;
   });
 
   const noticeCategories = Array.from(new Set(notices.map((n) => n.category)));
@@ -356,6 +358,8 @@ export function Home() {
               <input type="text" placeholder="아티클 검색..." value={articleSearch} onChange={(e) => setArticleSearch(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all" />
             </div>
+            {/* 태그별로 나누지 않고 스크롤 시 전체 노출: 태그 필터 UI 숨김 처리.
+                복원하려면 아래 블록의 주석을 해제하면 됨.
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Tags:</span>
               <button onClick={() => setSelectedTag(null)}
@@ -365,6 +369,7 @@ export function Home() {
                   className={`text-sm px-3.5 py-1.5 rounded-full transition-all ${selectedTag === tag ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-white/20 hover:text-foreground"}`}>{tag}</button>
               ))}
             </div>
+            */}
           </div>
         </FadeInSection>
 
