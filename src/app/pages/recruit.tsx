@@ -16,6 +16,10 @@ const BASIC_FIELD_INPUT_TYPE: Record<string, string> = {
 };
 
 
+// admin 대시보드로 넣은 테스트용 항목. DB에서는 지우지 않고 지원서 폼에서만 숨김.
+const HIDDEN_QUESTION_IDS = ["q_1774894363309"]; // "테스트용 질문"
+const HIDDEN_BASIC_FIELD_IDS = ["field_1775024470751"]; // "test"
+
 export function Recruit() {
   const [config, setConfig] = useState<RecruitConfig>(DEFAULT_RECRUIT_CONFIG);
   const [form, setForm] = useState<Record<string, string>>({});
@@ -26,7 +30,11 @@ export function Recruit() {
     apiFetch("/recruit-config")
       .then((r) => r.json())
       .then(({ config: cfg }) => {
-        if (cfg) setConfig({ ...DEFAULT_RECRUIT_CONFIG, ...cfg });
+        if (!cfg) return;
+        const merged: RecruitConfig = { ...DEFAULT_RECRUIT_CONFIG, ...cfg };
+        merged.questions = merged.questions.filter((q) => !HIDDEN_QUESTION_IDS.includes(q.id));
+        merged.basicFields = merged.basicFields.filter((f) => !HIDDEN_BASIC_FIELD_IDS.includes(f.id));
+        setConfig(merged);
       });
   }, []);
 
