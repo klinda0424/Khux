@@ -8,10 +8,9 @@ export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [recruitOpen, setRecruitOpen] = useState(false);
-  const [theme, setTheme] = useState<"light" | "dark">(() => {
-    // 기본 테마를 다크 모드로 변경 (기존: "light"). 라이트 모드 토글은 그대로 유지.
-    return (localStorage.getItem("theme") as "light" | "dark") || "dark";
-  });
+  // 기존 방문자의 라이트 모드 저장값과 무관하게 항상 다크로 시작하도록 강제.
+  // 토글로 라이트를 선택해도 다음 방문 시 다시 다크로 시작함 (세션 내에서만 유지).
+  const [theme, setTheme] = useState<"light" | "dark">("dark");
 
   useEffect(() => {
     apiFetch("/recruit-config")
@@ -29,7 +28,6 @@ export function Layout() {
     } else {
       root.classList.remove("dark");
     }
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const toggleTheme = () => setTheme((t) => (t === "light" ? "dark" : "light"));
