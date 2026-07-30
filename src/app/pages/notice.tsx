@@ -13,6 +13,11 @@ interface NoticeItem {
   views: number;
 }
 
+// 실제 공지 데이터 연동 전까지 아래 목업은 배포판에서 숨김 처리.
+// 다시 노출하려면 이 주석 블록을 풀고 mockNotices 에 넣으면 됨
+// (다음 리크루팅 시즌에 재사용 예정 — 내용은 삭제하지 않고 보존).
+const mockNotices: NoticeItem[] = [];
+/* mockNotices 원본 (복원 시 위 빈 배열 대신 이 내용을 사용):
 const mockNotices: NoticeItem[] = [
   {
     id: 1,
@@ -70,6 +75,7 @@ const mockNotices: NoticeItem[] = [
     views: 53,
   },
 ];
+*/
 
 const CATEGORIES = ["전체", "모집", "세미나", "안내", "특강"];
 

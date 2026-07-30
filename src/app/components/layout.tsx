@@ -9,7 +9,8 @@ export function Layout() {
   const [activeSection, setActiveSection] = useState("");
   const [recruitOpen, setRecruitOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
-    return (localStorage.getItem("theme") as "light" | "dark") || "light";
+    // 기본 테마를 다크 모드로 변경 (기존: "light"). 라이트 모드 토글은 그대로 유지.
+    return (localStorage.getItem("theme") as "light" | "dark") || "dark";
   });
 
   useEffect(() => {

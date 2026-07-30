@@ -106,26 +106,42 @@ export function Home() {
   const scrollGalleryTo = useCallback((i: number) => emblaApi?.scrollTo(i), [emblaApi]);
 
   // Filtered data
+  // 태그별 분류 없이 스크롤하면 전체가 다 보이도록 태그 필터링 비활성화.
+  // 다시 켜려면 matchTag 조건을 return 문에 추가하면 됨.
   const allTags = Array.from(new Set(articles.flatMap((a) => a.tags || [])));
   const filteredArticles = articles.filter((a) => {
     const matchSearch = a.title?.toLowerCase().includes(articleSearch.toLowerCase()) || a.excerpt?.toLowerCase().includes(articleSearch.toLowerCase());
-    const matchTag = selectedTag ? a.tags?.includes(selectedTag) : true;
-    return matchSearch && matchTag;
+    // const matchTag = selectedTag ? a.tags?.includes(selectedTag) : true;
+    return matchSearch;
   });
 
-  const noticeCategories = Array.from(new Set(notices.map((n) => n.category)));
-  const sortedNotices = [...notices].sort((a, b) => {
+  // 홈 화면 공지사항 위젯은 실제 백엔드(/news) 데이터를 그대로 노출하고 있었음.
+  // DB 레코드는 삭제하지 않고, 배포판에는 노출되지 않도록 표시용 배열만 비움.
+  // 복원하려면 displayNotices 를 notices 로 교체하면 됨.
+  const displayNotices: NoticeItem[] = [];
+  const noticeCategories = Array.from(new Set(displayNotices.map((n) => n.category)));
+  // const noticeCategories = Array.from(new Set(notices.map((n) => n.category)));
+  const sortedNotices = [...displayNotices].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   const filteredNotices = selectedNoticeCategory ? sortedNotices.filter((n) => n.category === selectedNoticeCategory) : sortedNotices;
 
+  // 갤러리는 카테고리로 나누지 않고, 사진 업로드 전까지 목업 데이터도 비워서 노출.
+  // 복원하려면 아래 주석 처리된 원본 줄로 교체하면 됨.
   const galleryCategories = Array.from(new Set(gallery.map((g) => g.category)));
-  const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
+  const displayGallery: GalleryItem[] = [];
+  const filteredGallery = displayGallery;
+  // const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
 
-  const activityCategories = Array.from(new Set(activities.map((a) => a.category)));
-  const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
+  // 실제 활동 데이터 연동 전까지 카테고리를 '프로젝트'/'해커톤' 두 개로 고정하고
+  // 데이터는 비워서 노출. 복원하려면 아래 주석 처리된 원본 줄로 교체하면 됨.
+  const activityCategories = ["프로젝트", "해커톤"];
+  // const activityCategories = Array.from(new Set(activities.map((a) => a.category)));
+  const displayActivities: Activity[] = [];
+  const filteredActivities = selectedActivityCategory ? displayActivities.filter((a) => a.category === selectedActivityCategory) : displayActivities;
+  // const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
 
   // Team data for about.html style
   const teamCards = [
@@ -356,6 +372,8 @@ export function Home() {
               <input type="text" placeholder="아티클 검색..." value={articleSearch} onChange={(e) => setArticleSearch(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all" />
             </div>
+            {/* 태그별로 나누지 않고 스크롤 시 전체 노출: 태그 필터 UI 숨김 처리.
+                복원하려면 아래 블록의 주석을 해제하면 됨.
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Tags:</span>
               <button onClick={() => setSelectedTag(null)}
@@ -365,6 +383,7 @@ export function Home() {
                   className={`text-sm px-3.5 py-1.5 rounded-full transition-all ${selectedTag === tag ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>{tag}</button>
               ))}
             </div>
+            */}
           </div>
         </FadeInSection>
 
@@ -476,6 +495,8 @@ export function Home() {
             KHUX의 다양한 활동 현장을 사진으로 만나보세요.
           </p>
 
+        {/* 갤러리 카테고리 필터 숨김 처리 (카테고리로 나누지 않고 전체 노출).
+            복원하려면 아래 블록의 주석을 해제하면 됨.
           <div className="mb-10">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">카테고리:</span>
@@ -487,6 +508,7 @@ export function Home() {
               ))}
             </div>
           </div>
+          */}
         </FadeInSection>
 
         {filteredGallery.length === 0 ? (

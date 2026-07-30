@@ -36,7 +36,9 @@ export const KV_KEY = "recruit:config";
 
 export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
   generation: "KHUX 4기",
-  isOpen: true,
+  // 배포판에서 recruit 페이지 콘텐츠 숨김 처리를 위해 false 로 설정.
+  // 실제 모집 시작 시 true 로 되돌리면 됨 (원래 값: true).
+  isOpen: false,
   description: "UX/UI에 관심 있는 경희대학교 학생이라면 누구나 지원 가능합니다.",
   applicationStart: "2026-03-14",
   applicationEnd: "2026-05-05",
