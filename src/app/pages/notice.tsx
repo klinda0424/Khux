@@ -13,63 +13,10 @@ interface NoticeItem {
   views: number;
 }
 
-const mockNotices: NoticeItem[] = [
-  {
-    id: 1,
-    title: "2025년 1학기 신입 부원 모집 공지",
-    category: "모집",
-    date: "2025-03-01",
-    content: "KHUX 학회 신입 부원을 모집합니다. UX 디자인에 관심 있는 경희대학교 재학생이라면 누구나 지원 가능합니다. 지원서는 이메일(khux@khu.ac.kr)로 제출해주세요. 서류 합격자에 한해 면접 일정을 개별 안내드립니다.",
-    important: true,
-    membersOnly: false,
-    author: "운영진",
-    views: 142,
-  },
-  {
-    id: 2,
-    title: "3월 정기 세미나 일정 안내",
-    category: "세미나",
-    date: "2025-03-10",
-    content: "3월 정기 세미나가 3월 22일(토) 오후 2시에 진행될 예정입니다. 장소는 경희대학교 전자정보대학 206호이며, 주제는 '사용자 리서치 방법론'입니다. 많은 참여 바랍니다.",
-    important: false,
-    membersOnly: true,
-    author: "에듀팀",
-    views: 89,
-  },
-  {
-    id: 3,
-    title: "학회비 납부 안내",
-    category: "안내",
-    date: "2025-03-15",
-    content: "2025년 1학기 학회비 납부 기한은 3월 31일까지입니다. 계좌번호는 개별 안내된 카카오톡 메시지를 확인해주세요. 기한 내 미납 시 활동에 제한이 있을 수 있습니다.",
-    important: true,
-    membersOnly: true,
-    author: "운영진",
-    views: 210,
-  },
-  {
-    id: 4,
-    title: "KHUX 스터디 그룹 모집",
-    category: "모집",
-    date: "2025-03-18",
-    content: "Figma 기초 스터디 그룹 멤버를 모집합니다. 매주 화요일 저녁 7시에 진행되며, 관심 있는 분은 운영진에게 DM 주세요.",
-    important: false,
-    membersOnly: false,
-    author: "브랜드팀",
-    views: 67,
-  },
-  {
-    id: 5,
-    title: "4월 외부 특강 안내",
-    category: "특강",
-    date: "2025-03-25",
-    content: "현직 UX 디자이너를 초청한 외부 특강이 4월 중 예정되어 있습니다. 일정이 확정되는 대로 추가 공지 드리겠습니다.",
-    important: false,
-    membersOnly: true,
-    author: "에듀팀",
-    views: 53,
-  },
-];
+// 실제 공지 데이터 연동 전까지 목업 비활성화.
+// 이전 목업 콘텐츠는 태그 mock-notices-recruiting-2026-07 에서 확인 가능
+// (다음 리크루팅 시즌에 재사용 예정).
+const mockNotices: NoticeItem[] = [];
 
 const CATEGORIES = ["전체", "모집", "세미나", "안내", "특강"];
 
