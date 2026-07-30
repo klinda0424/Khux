@@ -116,6 +116,8 @@ export function Recruit() {
           </div>
 
           {/* Schedule */}
+          {/* 실제 일정 확정 전까지 날짜 대신 '안내예정' 노출.
+              복원하려면 아래 주석 처리된 원래 표현으로 교체하면 됨. */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
             <div className="p-6 bg-card border border-border rounded-xl">
               <div className="flex items-center gap-3 mb-3">
@@ -123,7 +125,8 @@ export function Recruit() {
                 <h3 className="font-medium">지원 기간</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                {formatDate(config.applicationStart)} ~ {formatDate(config.applicationEnd)}
+                안내예정
+                {/* {formatDate(config.applicationStart)} ~ {formatDate(config.applicationEnd)} */}
               </p>
             </div>
             <div className="p-6 bg-card border border-border rounded-xl">
@@ -132,7 +135,8 @@ export function Recruit() {
                 <h3 className="font-medium">면접 일정</h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                {formatDate(config.interviewStart)} ~ {formatDate(config.interviewEnd)}
+                안내예정
+                {/* {formatDate(config.interviewStart)} ~ {formatDate(config.interviewEnd)} */}
               </p>
             </div>
             <div className="p-6 bg-card border border-border rounded-xl">
@@ -140,7 +144,10 @@ export function Recruit() {
                 <FileText className="h-5 w-5 text-primary" />
                 <h3 className="font-medium">결과 발표</h3>
               </div>
-              <p className="text-sm text-muted-foreground">{formatDate(config.resultDate)}</p>
+              <p className="text-sm text-muted-foreground">
+                안내예정
+                {/* {formatDate(config.resultDate)} */}
+              </p>
             </div>
           </div>
 
