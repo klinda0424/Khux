@@ -225,7 +225,6 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
                     required
                     value={teamName}
                     onChange={(e) => setTeamName(e.target.value)}
-                    placeholder="예: TEAM PIVOT"
                     className={inputClass}
                   />
                 </div>
@@ -236,7 +235,6 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
                     required
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
-                    placeholder="예: 밥친구"
                     className={inputClass}
                   />
                 </div>
@@ -293,7 +291,7 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
 
               {/* 01/02/03 */}
               <div>
-                <label className="block text-sm font-medium mb-2">01 · 어떤 문제였나 *</label>
+                <label className="block text-sm font-medium mb-2">01 · 문제정의 *</label>
                 <textarea
                   required
                   value={problem}
@@ -304,7 +302,7 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">02 · 무엇을 발견했나 *</label>
+                <label className="block text-sm font-medium mb-2">02 · 핵심 인사이트 *</label>
                 <textarea
                   required
                   value={discovery}
@@ -315,7 +313,7 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">03 · 어떻게 검증했나 *</label>
+                <label className="block text-sm font-medium mb-2">03 · 문제 검증 및 결과 *</label>
                 <textarea
                   required
                   value={validation}

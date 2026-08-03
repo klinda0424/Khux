@@ -97,15 +97,15 @@ export function ActivityDetail() {
           {/* 01 / 02 / 03 */}
           <div className="space-y-8 mb-10">
             <section>
-              <h3 className="text-lg font-bold mb-2">01 · 어떤 문제였나</h3>
+              <h3 className="text-lg font-bold mb-2">01 · 문제정의</h3>
               <p className="text-foreground/80 leading-relaxed whitespace-pre-line">{activity.problem}</p>
             </section>
             <section>
-              <h3 className="text-lg font-bold mb-2">02 · 무엇을 발견했나</h3>
+              <h3 className="text-lg font-bold mb-2">02 · 핵심 인사이트</h3>
               <p className="text-foreground/80 leading-relaxed whitespace-pre-line">{activity.discovery}</p>
             </section>
             <section>
-              <h3 className="text-lg font-bold mb-2">03 · 어떻게 검증했나</h3>
+              <h3 className="text-lg font-bold mb-2">03 · 문제 검증 및 결과</h3>
               <p className="text-foreground/80 leading-relaxed whitespace-pre-line">{activity.validation}</p>
             </section>
           </div>
