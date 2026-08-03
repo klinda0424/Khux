@@ -722,11 +722,15 @@ export function AdminDashboard() {
     item.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredActivities = activities.filter(
-    (item) =>
-      item.projectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.teamName?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredActivities = activities.filter((item) => {
+    // 구버전 스키마(레거시 title 필드만 있던 항목)도 검색·목록에서 누락되지 않도록
+    // projectName/teamName/legacy title을 모두 합쳐서 매칭한다.
+    const haystack = [item.projectName, item.teamName, (item as any).title]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(searchQuery.toLowerCase());
+  });
 
   // ============ Image ============
 
@@ -2142,24 +2146,32 @@ function GalleryCardAdmin({ item, onDelete, onEdit }: { item: GalleryItem, onDel
 }
 
 function ActivityCardAdmin({ item, onDelete, onEdit }: { item: Activity, onDelete: (id: string) => void, onEdit: (item: Activity) => void }) {
+  const legacyTitle = (item as any).title as string | undefined;
+  const isLegacy = !item.projectName && !!legacyTitle;
+  const displayTitle = item.projectName || legacyTitle || "(제목 없음)";
+  const displaySummary = item.summary || (item as any).description || "";
+
   return (
     <div className="p-6 bg-card border border-border rounded-xl hover:shadow-md transition-all">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 flex-1">
           {item.imageUrl && (
-            <img src={item.imageUrl} alt={item.projectName} className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
+            <img src={item.imageUrl} alt={displayTitle} className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
           )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <span className="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">{item.category}</span>
-              <span className="text-xs text-muted-foreground">{item.teamName}</span>
-              <span className="text-sm text-muted-foreground">{item.year} {item.half}</span>
+              {item.teamName && <span className="text-xs text-muted-foreground">{item.teamName}</span>}
+              {(item.year || item.half) && <span className="text-sm text-muted-foreground">{item.year} {item.half}</span>}
+              {isLegacy && (
+                <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 text-xs rounded-full font-medium">구버전 항목</span>
+              )}
               {item.hidden && (
                 <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full font-medium">숨김</span>
               )}
             </div>
-            <h3 className="text-lg font-medium mb-1">{item.projectName}</h3>
-            <p className="text-sm text-muted-foreground">{item.summary}</p>
+            <h3 className="text-lg font-medium mb-1">{displayTitle}</h3>
+            <p className="text-sm text-muted-foreground">{displaySummary}</p>
           </div>
         </div>
         <div className="flex gap-2">
