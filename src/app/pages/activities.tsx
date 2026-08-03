@@ -26,11 +26,12 @@ export function Activities() {
     fetchData();
   }, []);
 
-  const categories = Array.from(new Set(items.map((a) => a.category)));
+  const visibleItems = items.filter((a) => !a.hidden);
+  const categories = Array.from(new Set(visibleItems.map((a) => a.category)));
 
   const filteredActivities = selectedCategory
-    ? items.filter((a) => a.category === selectedCategory)
-    : items;
+    ? visibleItems.filter((a) => a.category === selectedCategory)
+    : visibleItems;
 
   return (
     <div className="w-full py-12 sm:py-20">
@@ -91,11 +92,11 @@ export function Activities() {
                   <div className="flex flex-col md:flex-row">
                     {/* Image */}
                     {activity.imageUrl && (
-                      <div className="md:w-80 flex-shrink-0">
+                      <div className="md:w-80 flex-shrink-0 bg-muted flex items-center justify-center">
                         <img
                           src={activity.imageUrl}
                           alt={activity.projectName}
-                          className="w-full h-48 md:h-full object-cover"
+                          className="w-full h-48 md:h-full object-contain"
                           loading="lazy"
                         />
                       </div>

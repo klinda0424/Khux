@@ -22,6 +22,10 @@ export function ActivityDetail() {
           return;
         }
         const data = await res.json();
+        if (data.activity?.hidden) {
+          setNotFound(true);
+          return;
+        }
         setActivity(data.activity);
       } catch (error) {
         console.error("Error fetching activity:", error);
@@ -68,8 +72,8 @@ export function ActivityDetail() {
 
           {/* 대표 이미지 */}
           {activity.imageUrl && (
-            <div className="mb-8 rounded-2xl overflow-hidden bg-muted aspect-video">
-              <img src={activity.imageUrl} alt={activity.projectName} className="w-full h-full object-cover" />
+            <div className="mb-8 rounded-2xl overflow-hidden bg-muted">
+              <img src={activity.imageUrl} alt={activity.projectName} className="w-full h-auto" />
             </div>
           )}
 

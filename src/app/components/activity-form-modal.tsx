@@ -31,6 +31,7 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
   const [slideFile, setSlideFile] = useState<File | null>(null);
   const [slideFileName, setSlideFileName] = useState<string | null>(null);
   const [testimonials, setTestimonials] = useState<ActivityTestimonial[]>([]);
+  const [hidden, setHidden] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
     setValidation(activity.validation || "");
     setSlideFileName(activity.slideUrl ? activity.slideUrl.split("/").pop() || "기존 파일" : null);
     setTestimonials(activity.testimonials || []);
+    setHidden(activity.hidden || false);
   }, [activity]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -115,6 +117,7 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
         slideUrl,
         slideType,
         testimonials: testimonials.filter((t) => t.quote.trim() || t.author.trim()),
+        hidden,
         date: activity?.date || new Date().toISOString().split("T")[0],
       };
 
@@ -380,6 +383,19 @@ export function ActivityFormModal({ activity, onClose, onSaved }: ActivityFormMo
               </div>
             </div>
           )}
+
+          <div className="flex items-center gap-3">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hidden}
+                onChange={(e) => setHidden(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-11 h-6 bg-border peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+            <span className="text-sm font-medium">숨김 처리 (목록/상세 페이지에 노출 안 함)</span>
+          </div>
 
           <div className="flex gap-3 pt-2">
             <button

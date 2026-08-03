@@ -135,7 +135,8 @@ export function Home() {
   // const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
 
   const activityCategories = ["프로젝트", "해커톤"];
-  const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
+  const visibleActivities = activities.filter((a) => !a.hidden);
+  const filteredActivities = selectedActivityCategory ? visibleActivities.filter((a) => a.category === selectedActivityCategory) : visibleActivities;
 
   // Team data for about.html style
   const teamCards = [
@@ -451,8 +452,8 @@ export function Home() {
               >
                 <div className="flex flex-col md:flex-row">
                   {activity.imageUrl && (
-                    <div className="md:w-80 flex-shrink-0">
-                      <img src={activity.imageUrl} alt={activity.projectName} className="w-full h-48 md:h-full object-cover" loading="lazy" />
+                    <div className="md:w-80 flex-shrink-0 bg-muted flex items-center justify-center">
+                      <img src={activity.imageUrl} alt={activity.projectName} className="w-full h-48 md:h-full object-contain" loading="lazy" />
                     </div>
                   )}
                   <div className="flex-1 p-6 md:p-8">

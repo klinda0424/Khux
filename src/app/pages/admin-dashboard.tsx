@@ -2154,6 +2154,9 @@ function ActivityCardAdmin({ item, onDelete, onEdit }: { item: Activity, onDelet
               <span className="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">{item.category}</span>
               <span className="text-xs text-muted-foreground">{item.teamName}</span>
               <span className="text-sm text-muted-foreground">{item.year} {item.half}</span>
+              {item.hidden && (
+                <span className="px-2 py-0.5 bg-muted text-muted-foreground text-xs rounded-full font-medium">숨김</span>
+              )}
             </div>
             <h3 className="text-lg font-medium mb-1">{item.projectName}</h3>
             <p className="text-sm text-muted-foreground">{item.summary}</p>

@@ -60,6 +60,7 @@ export interface Activity {
   slideUrl?: string;
   slideType?: "image" | "pdf";
   testimonials?: ActivityTestimonial[];
+  hidden?: boolean;
   date: string;
 }
 
