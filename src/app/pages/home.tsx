@@ -134,13 +134,8 @@ export function Home() {
   const filteredGallery = displayGallery;
   // const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
 
-  // 실제 활동 데이터 연동 전까지 카테고리를 '프로젝트'/'해커톤' 두 개로 고정하고
-  // 데이터는 비워서 노출. 복원하려면 아래 주석 처리된 원본 줄로 교체하면 됨.
   const activityCategories = ["프로젝트", "해커톤"];
-  // const activityCategories = Array.from(new Set(activities.map((a) => a.category)));
-  const displayActivities: Activity[] = [];
-  const filteredActivities = selectedActivityCategory ? displayActivities.filter((a) => a.category === selectedActivityCategory) : displayActivities;
-  // const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
+  const filteredActivities = selectedActivityCategory ? activities.filter((a) => a.category === selectedActivityCategory) : activities;
 
   // Team data for about.html style
   const teamCards = [
