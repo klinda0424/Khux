@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Home } from "./pages/home";
 import { ArticleDetail } from "./pages/article-detail";
+import { ActivityDetail } from "./pages/activity-detail";
 import { Recruit } from "./pages/recruit";
 import { AdminLogin } from "./pages/admin-login";
 import { AdminDashboard } from "./pages/admin-dashboard";
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: "recruit", Component: Recruit },
       { path: "notice", Component: Notice },
       { path: "articles/:id", Component: ArticleDetail },
+      { path: "activities/:id", Component: ActivityDetail },
       { path: "*", Component: NotFound },
     ],
   },

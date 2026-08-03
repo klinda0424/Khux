@@ -31,6 +31,7 @@ import { publicAnonKey } from "/utils/supabase/info";
 import type { Article, NoticeItem, GalleryItem, Activity } from "../data/mock-data";
 import { MarkdownEditor } from "../components/markdown-editor";
 import { AdminRecruitTab } from "./admin-recruit";
+import { ActivityFormModal } from "../components/activity-form-modal";
 
 const ARTICLE_DRAFT_KEY = "khux_article_draft_new";
 
@@ -595,14 +596,6 @@ export function AdminDashboard() {
 
   const handleEditActivity = (item: Activity) => {
     setEditingId(item.id);
-    setFormData({
-      title: item.title,
-      description: item.description,
-      content: item.content,
-      category: item.category,
-      date: item.date,
-    });
-    setImagePreview(item.imageUrl || null);
     setActiveTab("activities");
     setShowAddModal(true);
   };
@@ -713,40 +706,6 @@ export function AdminDashboard() {
     }
   };
 
-  const handleUpdateActivity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingId) return;
-    setSubmitting(true);
-    try {
-      let imageUrl: string | undefined = imagePreview || undefined;
-      if (imageFile) imageUrl = await uploadImage(imageFile);
-
-      const res = await apiFetchAuth(`/activities/${editingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formData.title, description: formData.description, content: formData.content,
-          category: formData.category, date: formData.date || new Date().toISOString().split('T')[0],
-          ...(imageUrl && { imageUrl }),
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setActivities(activities.map(a => a.id === editingId ? data.activity : a));
-        closeModal();
-        alert("액티비티가 수정되었습니다!");
-      } else {
-        alert("액티비티 수정에 실패했습니다.");
-      }
-    } catch (error) {
-      alert("인증이 만료되었습니다. 다시 로그인해주세요.");
-      navigate("/admin/login");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // ============ Filtering ============
 
   const filteredArticles = articles.filter(
@@ -763,8 +722,10 @@ export function AdminDashboard() {
     item.title?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredActivities = activities.filter((item) =>
-    item.title?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredActivities = activities.filter(
+    (item) =>
+      item.projectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.teamName?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // ============ Image ============
@@ -951,39 +912,6 @@ export function AdminDashboard() {
     }
   };
 
-  const handleAddActivity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      let imageUrl: string | undefined;
-      if (imageFile) imageUrl = await uploadImage(imageFile);
-
-      const res = await apiFetchAuth("/activities", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formData.title, description: formData.description, content: formData.content,
-          category: formData.category, date: formData.date || new Date().toISOString().split('T')[0],
-          ...(imageUrl && { imageUrl }),
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setActivities([data.activity, ...activities]);
-        closeModal();
-        alert("액티비티가 추가되었습니다!");
-      } else {
-        alert("액티비티 추가에 실패했습니다.");
-      }
-    } catch (error) {
-      alert("인증이 만료되었습니다. 다시 로그인해주세요.");
-      navigate("/admin/login");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   // ============ Form Submit Router ============
 
   const getSubmitHandler = () => {
@@ -992,14 +920,12 @@ export function AdminDashboard() {
         case "articles": return handleUpdateArticle;
         case "notice": return handleUpdateNotice;
         case "gallery": return handleUpdateGallery;
-        case "activities": return handleUpdateActivity;
       }
     }
     switch (activeTab) {
       case "articles": return handleAddArticle;
       case "notice": return handleAddNotice;
       case "gallery": return handleAddGallery;
-      case "activities": return handleAddActivity;
     }
   };
 
@@ -1178,7 +1104,12 @@ export function AdminDashboard() {
             </div>
             <button
               className="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-              onClick={activeTab === "articles" ? openAddModal : () => { setFormData({}); setShowAddModal(true); }}
+              onClick={() => {
+                if (activeTab === "articles") { openAddModal(); return; }
+                setEditingId(null);
+                setFormData({});
+                setShowAddModal(true);
+              }}
             >
               <PlusCircle className="h-5 w-5" />
               {getAddButtonLabel()}
@@ -1914,8 +1845,20 @@ export function AdminDashboard() {
         {activeTab === "recruit" && <AdminRecruitTab />}
       </div>
 
+      {/* Activity Add/Edit Modal (dedicated form) */}
+      {showAddModal && activeTab === "activities" && (
+        <ActivityFormModal
+          activity={editingId ? activities.find((a) => a.id === editingId) || null : null}
+          onClose={closeModal}
+          onSaved={(saved) => {
+            setActivities(editingId ? activities.map((a) => (a.id === saved.id ? saved : a)) : [saved, ...activities]);
+            closeModal();
+          }}
+        />
+      )}
+
       {/* Add/Edit Modal */}
-      {showAddModal && (
+      {showAddModal && activeTab !== "activities" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={closeModal}>
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-background border border-border rounded-xl shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="sticky top-0 bg-background border-b border-border p-6 flex items-center justify-between">
@@ -2085,39 +2028,6 @@ export function AdminDashboard() {
                 </>
               )}
 
-              {/* Activity Form */}
-              {activeTab === "activities" && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">제목 *</label>
-                    <input type="text" required value={formData.title || ""} onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="액티비티 제목" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">간단 설명 *</label>
-                    <input type="text" required value={formData.description || ""} onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="액티비티 간단 설명" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">상세 내용 *</label>
-                    <textarea required value={formData.content || ""} onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                      className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" rows={6} placeholder="액티비티 상세 내용" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-2">카테고리 *</label>
-                      <input type="text" required value={formData.category || ""} onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" placeholder="세미나, 프로젝트, 워크숍 등" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-2">날짜</label>
-                      <input type="date" value={formData.date || ""} onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-                    </div>
-                  </div>
-                </>
-              )}
-
               {/* Image Upload (shared) */}
               <div>
                 <label className="block text-sm font-medium mb-2">
@@ -2237,15 +2147,16 @@ function ActivityCardAdmin({ item, onDelete, onEdit }: { item: Activity, onDelet
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-4 flex-1">
           {item.imageUrl && (
-            <img src={item.imageUrl} alt={item.title} className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
+            <img src={item.imageUrl} alt={item.projectName} className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
           )}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <span className="px-3 py-1 bg-primary/10 text-primary text-xs rounded-full">{item.category}</span>
-              <span className="text-sm text-muted-foreground">{item.date}</span>
+              <span className="text-xs text-muted-foreground">{item.teamName}</span>
+              <span className="text-sm text-muted-foreground">{item.year} {item.half}</span>
             </div>
-            <h3 className="text-lg font-medium mb-1">{item.title}</h3>
-            <p className="text-sm text-muted-foreground">{item.description}</p>
+            <h3 className="text-lg font-medium mb-1">{item.projectName}</h3>
+            <p className="text-sm text-muted-foreground">{item.summary}</p>
           </div>
         </div>
         <div className="flex gap-2">

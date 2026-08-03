@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router";
 import type { Activity } from "../data/mock-data";
 import { activities as mockActivities } from "../data/mock-data";
-import { Calendar, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { apiFetch } from "../../utils/supabase-client";
 
 export function Activities() {
   const [items, setItems] = useState<Activity[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -83,9 +83,10 @@ export function Activities() {
             {/* Activities List */}
             <div className="space-y-6">
               {filteredActivities.map((activity) => (
-                <div
+                <Link
                   key={activity.id}
-                  className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300"
+                  to={`/activities/${activity.id}`}
+                  className="group block bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300"
                 >
                   <div className="flex flex-col md:flex-row">
                     {/* Image */}
@@ -93,7 +94,7 @@ export function Activities() {
                       <div className="md:w-80 flex-shrink-0">
                         <img
                           src={activity.imageUrl}
-                          alt={activity.title}
+                          alt={activity.projectName}
                           className="w-full h-48 md:h-full object-cover"
                           loading="lazy"
                         />
@@ -106,40 +107,22 @@ export function Activities() {
                         <span className="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
                           {activity.category}
                         </span>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Calendar className="h-4 w-4" />
-                          {activity.date}
-                        </div>
+                        <span className="text-sm text-muted-foreground">{activity.teamName}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {activity.year} {activity.half}
+                        </span>
                       </div>
 
-                      <h2 className="text-xl md:text-2xl font-medium mb-3">{activity.title}</h2>
-                      <p className="text-muted-foreground mb-4">{activity.description}</p>
+                      <h2 className="text-xl md:text-2xl font-medium mb-3">{activity.projectName}</h2>
+                      <p className="text-muted-foreground mb-4">{activity.summary}</p>
 
-                      {/* Expandable content */}
-                      {expandedId === activity.id && (
-                        <div className="mt-4 pt-4 border-t border-border">
-                          <p className="text-foreground/80 leading-relaxed whitespace-pre-line">
-                            {activity.content}
-                          </p>
-                        </div>
-                      )}
-
-                      <button
-                        onClick={() =>
-                          setExpandedId(expandedId === activity.id ? null : activity.id)
-                        }
-                        className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors mt-2"
-                      >
-                        {expandedId === activity.id ? "접기" : "자세히 보기"}
-                        <ChevronRight
-                          className={`h-4 w-4 transition-transform ${
-                            expandedId === activity.id ? "rotate-90" : ""
-                          }`}
-                        />
-                      </button>
+                      <span className="inline-flex items-center gap-1 text-sm text-primary group-hover:text-primary/80 transition-colors mt-2">
+                        자세히 보기
+                        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </span>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 

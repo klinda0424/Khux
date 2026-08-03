@@ -42,7 +42,6 @@ export function Home() {
 
   // Activities state
   const [selectedActivityCategory, setSelectedActivityCategory] = useState<string | null>(null);
-  const [expandedActivityId, setExpandedActivityId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -451,33 +450,31 @@ export function Home() {
         <div className="space-y-5">
           {filteredActivities.map((activity) => (
             <FadeInSection key={activity.id}>
-              <div className="group bg-surface border border-border rounded-2xl overflow-hidden hover:-translate-y-1 hover:border-white/[0.15] hover:shadow-[0_24px_48px_rgba(0,0,0,0.3)] transition-all duration-500">
+              <Link
+                to={`/activities/${activity.id}`}
+                className="group block bg-surface border border-border rounded-2xl overflow-hidden hover:-translate-y-1 hover:border-white/[0.15] hover:shadow-[0_24px_48px_rgba(0,0,0,0.3)] transition-all duration-500"
+              >
                 <div className="flex flex-col md:flex-row">
                   {activity.imageUrl && (
                     <div className="md:w-80 flex-shrink-0">
-                      <img src={activity.imageUrl} alt={activity.title} className="w-full h-48 md:h-full object-cover" loading="lazy" />
+                      <img src={activity.imageUrl} alt={activity.projectName} className="w-full h-48 md:h-full object-cover" loading="lazy" />
                     </div>
                   )}
                   <div className="flex-1 p-6 md:p-8">
                     <div className="flex items-center gap-3 mb-3">
                       <span className="text-xs px-3 py-1 bg-green-100 dark:bg-primary/10 text-primary rounded-full font-semibold">{activity.category}</span>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground"><Calendar className="h-4 w-4" />{activity.date}</div>
+                      <span className="text-sm text-muted-foreground">{activity.teamName}</span>
+                      <span className="text-sm text-muted-foreground">{activity.year} {activity.half}</span>
                     </div>
-                    <h3 className="text-xl md:text-2xl font-bold mb-3">{activity.title}</h3>
-                    <p className="text-text-sub mb-4">{activity.description}</p>
-                    {expandedActivityId === activity.id && (
-                      <div className="mt-4 pt-4 border-t border-border">
-                        <p className="text-foreground/80 leading-relaxed whitespace-pre-line">{activity.content}</p>
-                      </div>
-                    )}
-                    <button onClick={() => setExpandedActivityId(expandedActivityId === activity.id ? null : activity.id)}
-                      className="inline-flex items-center gap-1 text-sm text-primary hover:text-primary/80 transition-colors mt-2 font-medium">
-                      {expandedActivityId === activity.id ? "접기" : "자세히 보기"}
-                      <ChevronRight className={`h-4 w-4 transition-transform ${expandedActivityId === activity.id ? "rotate-90" : ""}`} />
-                    </button>
+                    <h3 className="text-xl md:text-2xl font-bold mb-3">{activity.projectName}</h3>
+                    <p className="text-text-sub mb-4">{activity.summary}</p>
+                    <span className="inline-flex items-center gap-1 text-sm text-primary group-hover:text-primary/80 transition-colors mt-2 font-medium">
+                      자세히 보기
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             </FadeInSection>
           ))}
           {filteredActivities.length === 0 && <div className="text-center py-20"><p className="text-muted-foreground">해당 카테고리의 활동이 없습니다.</p></div>}

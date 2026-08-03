@@ -38,15 +38,29 @@ export interface GalleryItem {
   date: string;
 }
 
+export interface ActivityTestimonial {
+  quote: string;
+  author: string;
+}
+
 export interface Activity {
   id: string;
-  title: string;
-  description: string;
-  content: string;
-  date: string;
-  category: string;
+  category: "프로젝트" | "해커톤";
+  year: string;
+  half: "상반기" | "하반기";
+  teamName: string;
+  projectName: string;
+  summary: string;
   imageUrl?: string;
-  participants?: string[];
+  mvpDescription: string;
+  mvpDemoUrl?: string;
+  problem: string;
+  discovery: string;
+  validation: string;
+  slideUrl?: string;
+  slideType?: "image" | "pdf";
+  testimonials?: ActivityTestimonial[];
+  date: string;
 }
 
 export const articles: Article[] = [];
