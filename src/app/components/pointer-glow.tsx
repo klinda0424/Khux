@@ -32,8 +32,7 @@ export function PointerGlow() {
       className="pointer-events-none fixed inset-0 z-[60] opacity-0 transition-opacity duration-300"
       style={{
         background:
-          "radial-gradient(320px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(0, 230, 168, 0.16), transparent 70%)",
-        mixBlendMode: "screen",
+          "radial-gradient(320px circle at var(--glow-x, 50%) var(--glow-y, 50%), rgba(0, 230, 168, 0.22), transparent 70%)",
       }}
     />
   );
