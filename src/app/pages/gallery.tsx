@@ -1,4 +1,11 @@
 import { AccordionGallery } from "../components/accordion-gallery/AccordionGallery";
+import type { AccordionGalleryItem } from "../components/accordion-gallery/AccordionGallery";
+
+const GALLERY_ITEMS: AccordionGalleryItem[] = [
+  { image: "/gallery/93.png", label: "2기 활동 종료" },
+  { image: "/gallery/91.png", label: "Midterm Project" },
+  { image: "/gallery/92.png", label: "Final Project" },
+];
 
 export function Gallery() {
   return (
@@ -12,7 +19,7 @@ export function Gallery() {
           </p>
         </div>
 
-        <AccordionGallery />
+        <AccordionGallery items={GALLERY_ITEMS} defaultIndex={1} height={640} expandRatio={0.4} />
       </div>
     </div>
   );

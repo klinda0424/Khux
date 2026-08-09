@@ -153,6 +153,13 @@ export function Home() {
     purple: { bar: "bg-[#a855f7]", badge: "text-[#a855f7]", glow: "bg-[#a855f7]/[0.07] group-hover:bg-[#a855f7]/[0.12]" },
   };
 
+  const cultureItems = [
+    { title: "Human-Centric", desc: "우리는 인간 중심으로 사고하고 솔루션을 만듭니다." },
+    { title: "Deep Dive", desc: "우리는 문제의 표면에 머무르지 않고 본질을 끝까지 파고듭니다." },
+    { title: "Bias for Action", desc: "우리는 고민만 하지 않고 빠르게 먼저 움직여 실행합니다." },
+    { title: "Above and Beyond", desc: "우리는 내가 할 수 있는 100%는 기본, 그 이상을 쏟아부어 탁월함을 만듭니다." },
+  ];
+
   const activityItems = [
     { num: "01", icon: "🔍", title: "UX 리서치", desc: "사용자 인터뷰, 사용성 테스트, 데이터 분석을 통해 실제 사용자의 니즈와 페인 포인트를 탐구합니다." },
     { num: "02", icon: "🤖", title: "AI 기능 기획", desc: "기존 서비스에 AI를 접목한 새로운 기능을 기획하고, UX 관점에서 실현 가능성을 검증합니다." },
@@ -226,6 +233,24 @@ export function Home() {
                 <div className="text-sm text-muted-foreground font-medium">{label}</div>
               </div>
             ))}
+          </div>
+        </FadeInSection>
+
+        {/* KHUX Culture */}
+        <FadeInSection>
+          <div className="mt-20">
+            <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">KHUX Culture</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {cultureItems.map((item) => (
+                <div
+                  key={item.title}
+                  className="bg-surface border border-border rounded-2xl p-8 hover:border-primary/20 hover:-translate-y-1 transition-all duration-500"
+                >
+                  <h4 className="text-base font-bold text-primary mb-3">[{item.title}]</h4>
+                  <p className="text-sm text-text-sub leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </FadeInSection>
       </section>
