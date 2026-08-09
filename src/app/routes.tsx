@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { Home } from "./pages/home";
 import { ArticleDetail } from "./pages/article-detail";
 import { ActivityDetail } from "./pages/activity-detail";
+import { Gallery } from "./pages/gallery";
 import { Recruit } from "./pages/recruit";
 import { AdminLogin } from "./pages/admin-login";
 import { AdminDashboard } from "./pages/admin-dashboard";
@@ -30,6 +31,7 @@ export const router = createBrowserRouter([
       { path: "notice", Component: Notice },
       { path: "articles/:id", Component: ArticleDetail },
       { path: "activities/:id", Component: ActivityDetail },
+      { path: "gallery", Component: Gallery },
       { path: "*", Component: NotFound },
     ],
   },
