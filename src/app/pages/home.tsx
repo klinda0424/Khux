@@ -16,6 +16,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { FadeInSection } from "../components/fade-in-section";
 import { AccordionGallery } from "../components/accordion-gallery/AccordionGallery";
 import { GALLERY_ITEMS } from "../data/gallery-items";
+import { LandingIntro } from "../components/landing-intro";
 
 export function Home() {
   const location = useLocation();
@@ -133,12 +134,13 @@ export function Home() {
     { num: "02", title: "AI 기능 기획", desc: "기존 서비스에 AI를 접목한 새로운 기능을 기획하고, UX 관점에서 실현 가능성을 검증합니다." },
     { num: "03", title: "UI/UX 디자인", desc: "Figma를 활용한 와이어프레임, 프로토타입 제작으로 아이디어를 구체적인 화면으로 구현합니다." },
     { num: "04", title: "케이스 스터디", desc: "국내외 서비스를 분석해 UX 전략, 비즈니스 임팩트, 개선 방안을 도출합니다." },
-    { num: "05", title: "프로토타입 구현", desc: "HTML/CSS/JS를 활용해 기획한 UX 아이디어를 직접 작동하는 프로토타입으로 만듭니다." },
+    { num: "05", title: "프로토타입 구현", desc: "기획한 UX 아이디어를 직접 작동하는 프로토타입으로 만듭니다." },
     { num: "06", title: "스터디 & 세미나", desc: "UX 트렌드, 디자인 시스템, AI 기술 등을 주제로 구성원들이 함께 배우고 성장합니다." },
   ];
 
   return (
     <div className="w-full">
+      <LandingIntro />
       {/* ==================== HERO ==================== */}
       <section className="relative min-h-screen flex flex-col justify-end px-6 sm:px-12 pb-20 overflow-hidden">
         {/* Grid background */}
@@ -175,7 +177,7 @@ export function Home() {
       {/* ==================== ABOUT ==================== */}
       <section id="about" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6 text-primary">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl mb-6 text-primary">
             Designing User Experience<br />Kyung Hee University UX Society
           </h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl">
@@ -239,10 +241,6 @@ export function Home() {
               <p className="text-xl sm:text-[22px] font-bold leading-snug tracking-[-0.02em] text-foreground">
                 AI 시대의 UX를 선도하는<br />경희대 최고의 실전 연구 학회
               </p>
-              <p className="text-sm text-text-sub mt-3 leading-relaxed">
-                기술과 인간의 접점에서 진정한 가치를 만드는
-                연구자·디자이너·기획자를 배출합니다.
-              </p>
             </div>
           </FadeInSection>
           <FadeInSection>
@@ -252,10 +250,6 @@ export function Home() {
               <h3 className="text-xs font-bold tracking-[0.12em] uppercase text-primary mb-4">Mission</h3>
               <p className="text-xl sm:text-[22px] font-bold leading-snug tracking-[-0.02em] text-foreground">
                 사용자 중심 사고로<br />실제 문제를 해결한다
-              </p>
-              <p className="text-sm text-text-sub mt-3 leading-relaxed">
-                데이터 기반 분석과 디자인 씽킹을 결합해
-                현실 서비스에 적용 가능한 UX 솔루션을 제안합니다.
               </p>
             </div>
           </FadeInSection>
@@ -295,9 +289,8 @@ export function Home() {
             <div>
               <h2 className="text-3xl sm:text-4xl lg:text-5xl text-primary">Our Teams</h2>
             </div>
-            <p className="text-[15px] text-text-sub leading-relaxed max-w-md">
-              KHUX는 네 개의 팀이 각자의 전문성으로 협력하며
-              하나의 완성된 UX 학회를 만들어 나갑니다.
+            <p className="text-[15px] text-text-sub leading-relaxed whitespace-nowrap">
+              KHUX는 네 개의 팀이 각자의 전문성으로 협력하며 하나의 완성된 UX 학회를 만들어 나갑니다.
             </p>
           </div>
         </FadeInSection>

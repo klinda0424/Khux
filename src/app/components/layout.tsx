@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation } from "react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../utils/supabase-client";
+import { PointerGlow } from "./pointer-glow";
 
 export function Layout() {
   const location = useLocation();
@@ -92,6 +93,7 @@ export function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      <PointerGlow />
       <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border">
         <div className="container mx-auto px-6 sm:px-8 lg:px-12">
           <div className="flex h-16 items-center justify-between">
