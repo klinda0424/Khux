@@ -38,7 +38,6 @@ export function Layout() {
     { id: "about", label: "About" },
     { id: "articles", label: "Articles" },
     { id: "activities", label: "Activities" },
-    { id: "gallery", label: "Gallery" },
   ];
 
   useEffect(() => {
@@ -117,6 +116,16 @@ export function Layout() {
                 </button>
               ))}
               <Link
+                to="/gallery"
+                className={`text-sm font-medium transition-colors ${
+                  location.pathname === "/gallery"
+                    ? "text-foreground"
+                    : "text-text-sub hover:text-foreground"
+                }`}
+              >
+                Gallery
+              </Link>
+              <Link
                 to="/notice"
                 className={`text-sm font-medium transition-colors ${
                   location.pathname === "/notice"
@@ -187,6 +196,17 @@ export function Layout() {
                   {item.label}
                 </button>
               ))}
+              <Link
+                to="/gallery"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm ${
+                  location.pathname === "/gallery"
+                    ? "text-foreground bg-surface2"
+                    : "text-text-sub hover:text-foreground hover:bg-surface2"
+                }`}
+              >
+                Gallery
+              </Link>
               <Link
                 to="/notice"
                 onClick={() => setMobileMenuOpen(false)}
