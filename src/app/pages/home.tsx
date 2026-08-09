@@ -7,15 +7,15 @@ import {
   User,
   Calendar,
   ChevronRight,
-  ChevronLeft,
   X,
 } from "lucide-react";
-import useEmblaCarousel from "embla-carousel-react";
 import type { Article, NoticeItem, GalleryItem, Activity } from "../data/mock-data";
 import { articles as mockArticles, notices as mockNotices, gallery as mockGallery, activities as mockActivities } from "../data/mock-data";
 import { apiFetch } from "../../utils/supabase-client";
 import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { FadeInSection } from "../components/fade-in-section";
+import { AccordionGallery } from "../components/accordion-gallery/AccordionGallery";
+import { GALLERY_ITEMS } from "../data/gallery-items";
 
 export function Home() {
   const location = useLocation();
@@ -33,12 +33,6 @@ export function Home() {
   // Notice state
   const [selectedNoticeCategory, setSelectedNoticeCategory] = useState<string | null>(null);
   const [selectedNotice, setSelectedNotice] = useState<NoticeItem | null>(null);
-
-  // Gallery state
-  const [selectedGalleryCategory, setSelectedGalleryCategory] = useState<string | null>(null);
-  const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
-  const [galleryIndex, setGalleryIndex] = useState(0);
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: "center" });
 
   // Activities state
   const [selectedActivityCategory, setSelectedActivityCategory] = useState<string | null>(null);
@@ -85,25 +79,6 @@ export function Home() {
     }
   }, [location.hash]);
 
-  // Gallery carousel auto-slide
-  useEffect(() => {
-    if (!emblaApi) return;
-    const interval = setInterval(() => emblaApi.scrollNext(), 4000);
-    return () => clearInterval(interval);
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const onSelect = () => setGalleryIndex(emblaApi.selectedScrollSnap());
-    emblaApi.on("select", onSelect);
-    onSelect();
-    return () => { emblaApi.off("select", onSelect); };
-  }, [emblaApi]);
-
-  const scrollGalleryPrev = useCallback(() => emblaApi?.scrollPrev(), [emblaApi]);
-  const scrollGalleryNext = useCallback(() => emblaApi?.scrollNext(), [emblaApi]);
-  const scrollGalleryTo = useCallback((i: number) => emblaApi?.scrollTo(i), [emblaApi]);
-
   // Filtered data
   // 태그별 분류 없이 스크롤하면 전체가 다 보이도록 태그 필터링 비활성화.
   // 다시 켜려면 matchTag 조건을 return 문에 추가하면 됨.
@@ -126,13 +101,6 @@ export function Home() {
     return new Date(b.date).getTime() - new Date(a.date).getTime();
   });
   const filteredNotices = selectedNoticeCategory ? sortedNotices.filter((n) => n.category === selectedNoticeCategory) : sortedNotices;
-
-  // 갤러리는 카테고리로 나누지 않고, 사진 업로드 전까지 목업 데이터도 비워서 노출.
-  // 복원하려면 아래 주석 처리된 원본 줄로 교체하면 됨.
-  const galleryCategories = Array.from(new Set(gallery.map((g) => g.category)));
-  const displayGallery: GalleryItem[] = [];
-  const filteredGallery = displayGallery;
-  // const filteredGallery = selectedGalleryCategory ? gallery.filter((g) => g.category === selectedGalleryCategory) : gallery;
 
   const activityCategories = ["프로젝트", "해커톤"];
   const visibleActivities = activities.filter((a) => !a.hidden);
@@ -161,12 +129,12 @@ export function Home() {
   ];
 
   const activityItems = [
-    { num: "01", icon: "🔍", title: "UX 리서치", desc: "사용자 인터뷰, 사용성 테스트, 데이터 분석을 통해 실제 사용자의 니즈와 페인 포인트를 탐구합니다." },
-    { num: "02", icon: "🤖", title: "AI 기능 기획", desc: "기존 서비스에 AI를 접목한 새로운 기능을 기획하고, UX 관점에서 실현 가능성을 검증합니다." },
-    { num: "03", icon: "🎨", title: "UI/UX 디자인", desc: "Figma를 활용한 와이어프레임, 프로토타입 제작으로 아이디어를 구체적인 화면으로 구현합니다." },
-    { num: "04", icon: "📊", title: "케이스 스터디", desc: "국내외 서비스를 분석해 UX 전략, 비즈니스 임팩트, 개선 방안을 도출합니다." },
-    { num: "05", icon: "🧑‍💻", title: "프로토타입 구현", desc: "HTML/CSS/JS를 활용해 기획한 UX 아이디어를 직접 작동하는 프로토타입으로 만듭니다." },
-    { num: "06", icon: "🤝", title: "스터디 & 세미나", desc: "UX 트렌드, 디자인 시스템, AI 기술 등을 주제로 구성원들이 함께 배우고 성장합니다." },
+    { num: "01", title: "UX 리서치", desc: "사용자 인터뷰, 사용성 테스트, 데이터 분석을 통해 실제 사용자의 니즈와 페인 포인트를 탐구합니다." },
+    { num: "02", title: "AI 기능 기획", desc: "기존 서비스에 AI를 접목한 새로운 기능을 기획하고, UX 관점에서 실현 가능성을 검증합니다." },
+    { num: "03", title: "UI/UX 디자인", desc: "Figma를 활용한 와이어프레임, 프로토타입 제작으로 아이디어를 구체적인 화면으로 구현합니다." },
+    { num: "04", title: "케이스 스터디", desc: "국내외 서비스를 분석해 UX 전략, 비즈니스 임팩트, 개선 방안을 도출합니다." },
+    { num: "05", title: "프로토타입 구현", desc: "HTML/CSS/JS를 활용해 기획한 UX 아이디어를 직접 작동하는 프로토타입으로 만듭니다." },
+    { num: "06", title: "스터디 & 세미나", desc: "UX 트렌드, 디자인 시스템, AI 기술 등을 주제로 구성원들이 함께 배우고 성장합니다." },
   ];
 
   return (
@@ -310,8 +278,6 @@ export function Home() {
           {activityItems.map((item) => (
             <FadeInSection key={item.num}>
               <div className="bg-surface border border-border rounded-2xl p-8 flex flex-col gap-4 hover:bg-surface2 hover:border-white/[0.15] hover:-translate-y-1.5 transition-all duration-500 cursor-default">
-                <span className="text-xs font-bold tracking-[0.1em] text-muted-foreground">{item.num}</span>
-                <span className="text-3xl">{item.icon}</span>
                 <h4 className="text-lg font-bold tracking-[-0.02em]">{item.title}</h4>
                 <p className="text-sm text-text-sub leading-relaxed">{item.desc}</p>
               </div>
@@ -505,105 +471,11 @@ export function Home() {
           <p className="text-base text-text-sub leading-relaxed max-w-2xl mb-10">
             KHUX의 다양한 활동 현장을 사진으로 만나보세요.
           </p>
-
-        {/* 갤러리 카테고리 필터 숨김 처리 (카테고리로 나누지 않고 전체 노출).
-            복원하려면 아래 블록의 주석을 해제하면 됨.
-          <div className="mb-10">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-muted-foreground">카테고리:</span>
-              <button onClick={() => setSelectedGalleryCategory(null)}
-                className={`text-sm px-4 py-2 rounded-full transition-all ${selectedGalleryCategory === null ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>전체</button>
-              {galleryCategories.map((c) => (
-                <button key={c} onClick={() => setSelectedGalleryCategory(c)}
-                  className={`text-sm px-4 py-2 rounded-full transition-all ${selectedGalleryCategory === c ? "bg-primary text-primary-foreground font-semibold" : "bg-surface border border-border text-text-sub hover:border-foreground/30 hover:text-foreground"}`}>{c}</button>
-              ))}
-            </div>
-          </div>
-          */}
         </FadeInSection>
 
-        {filteredGallery.length === 0 ? (
-          <div className="text-center py-20"><p className="text-muted-foreground">해당 카테고리의 사진이 없습니다.</p></div>
-        ) : (
-          <FadeInSection>
-            {/* Carousel */}
-            <div className="relative group">
-              <button onClick={scrollGalleryPrev}
-                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors opacity-0 group-hover:opacity-100"
-                aria-label="이전">
-                <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-              <button onClick={scrollGalleryNext}
-                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/60 transition-colors opacity-0 group-hover:opacity-100"
-                aria-label="다음">
-                <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-              </button>
-
-              <div className="overflow-hidden rounded-2xl" ref={emblaRef}>
-                <div className="flex">
-                  {filteredGallery.map((item) => (
-                    <div key={item.id} className="flex-[0_0_100%] min-w-0 px-1">
-                      <div className="relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-surface" onClick={() => setSelectedImage(item)}>
-                        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-                          <img src={item.imageUrl} alt={item.title} className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 hover:scale-105" loading="lazy" />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                        <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
-                          <span className="inline-block text-xs px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white mb-3">{item.category}</span>
-                          <h3 className="text-white text-xl sm:text-2xl font-semibold">{item.title}</h3>
-                          <p className="text-white/80 text-sm sm:text-base mt-2 line-clamp-2">{item.description}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Dots */}
-              <div className="flex justify-center gap-2 mt-6">
-                {filteredGallery.map((_, i) => (
-                  <button key={i} onClick={() => scrollGalleryTo(i)}
-                    className={`rounded-full transition-all duration-300 ${i === galleryIndex ? "w-8 h-2 bg-primary" : "w-2 h-2 bg-muted-foreground/30 hover:bg-muted-foreground/50"}`}
-                    aria-label={`슬라이드 ${i + 1}`} />
-                ))}
-              </div>
-            </div>
-
-            {/* Thumbnail Grid */}
-            <div className="mt-10">
-              <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-6 gap-2 sm:gap-3">
-                {filteredGallery.map((item, i) => (
-                  <div key={item.id}
-                    className={`relative cursor-pointer overflow-hidden rounded-lg border-2 transition-all duration-200 aspect-square ${i === galleryIndex ? "border-primary ring-2 ring-primary/30" : "border-transparent hover:border-muted-foreground/30"}`}
-                    onClick={() => { scrollGalleryTo(i); setSelectedImage(item); }}>
-                    <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-300 hover:scale-110" loading="lazy" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </FadeInSection>
-        )}
-
-        {/* Lightbox */}
-        {selectedImage && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setSelectedImage(null)}>
-            <div className="relative max-w-4xl w-full bg-surface rounded-2xl overflow-hidden shadow-2xl border border-border" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => setSelectedImage(null)}
-                className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors">
-                <X className="h-5 w-5" />
-              </button>
-              <img src={selectedImage.imageUrl} alt={selectedImage.title} className="w-full max-h-[70vh] object-contain bg-black" />
-              <div className="p-6">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-xs px-2.5 py-1 bg-primary/10 text-primary rounded-full font-semibold">{selectedImage.category}</span>
-                  <span className="text-sm text-muted-foreground">{selectedImage.date}</span>
-                </div>
-                <h2 className="text-xl font-bold mb-2">{selectedImage.title}</h2>
-                <p className="text-text-sub">{selectedImage.description}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        <FadeInSection>
+          <AccordionGallery items={GALLERY_ITEMS} defaultIndex={1} height={640} expandRatio={0.4} />
+        </FadeInSection>
       </section>
 
       <hr className="border-border mx-6 sm:mx-12" />
