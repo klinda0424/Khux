@@ -102,7 +102,7 @@ export function Notice() {
     <div className="w-full py-12 sm:py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
         <div className="mb-10">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-3">공지사항</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-3">Notice</h1>
           <p className="text-muted-foreground text-lg">KHUX 학회의 공지사항을 확인하세요.</p>
         </div>
 
