@@ -207,8 +207,7 @@ export function Home() {
       {/* ==================== ABOUT ==================== */}
       <section id="about" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Who We Are</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">
             Designing User Experience<br />Kyung Hee University UX Society
           </h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl">
@@ -239,7 +238,7 @@ export function Home() {
         {/* KHUX Culture */}
         <FadeInSection>
           <div className="mt-20">
-            <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">KHUX Culture</p>
+            <h3 className="text-2xl sm:text-3xl mb-6 text-primary">KHUX Culture</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {cultureItems.map((item) => (
                 <div
@@ -260,8 +259,7 @@ export function Home() {
       {/* ==================== VISION & MISSION ==================== */}
       <section className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Vision & Mission</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Direction & Goals</h2>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Direction & Goals</h2>
         </FadeInSection>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16">
@@ -301,8 +299,7 @@ export function Home() {
       {/* ==================== WHAT WE DO ==================== */}
       <section className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">What We Do</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Activity Areas</h2>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Activity Areas</h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl">
             KHUX는 UX 연구, AI 기능 기획, 브랜드 경험 설계를 중심으로
             다양한 실전 활동을 진행합니다.
@@ -330,8 +327,7 @@ export function Home() {
         <FadeInSection>
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-10 mb-16">
             <div>
-              <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Our Teams</p>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl">Our Teams</h2>
+              <h2 className="text-4xl sm:text-5xl lg:text-6xl text-primary">Our Teams</h2>
             </div>
             <p className="text-[15px] text-text-sub leading-relaxed max-w-md">
               KHUX는 네 개의 팀이 각자의 전문성으로 협력하며
@@ -380,8 +376,7 @@ export function Home() {
       {/* ==================== ARTICLES ==================== */}
       <section id="articles" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Articles</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Articles</h2>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Articles</h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl mb-10">
             KHUX 멤버들이 작성한 UX/UI 디자인 관련 아티클을 확인하세요.
           </p>
@@ -449,8 +444,7 @@ export function Home() {
       {/* ==================== ACTIVITIES ==================== */}
       <section id="activities" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Activities</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Activities</h2>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Activities</h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl mb-10">
             세미나, 프로젝트, 워크숍 등 다양한 활동을 소개합니다.
           </p>
@@ -507,8 +501,7 @@ export function Home() {
       {/* ==================== GALLERY ==================== */}
       <section id="gallery" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Gallery</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Gallery</h2>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Gallery</h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl mb-10">
             KHUX의 다양한 활동 현장을 사진으로 만나보세요.
           </p>
@@ -618,8 +611,7 @@ export function Home() {
       {/* ==================== NOTICE ==================== */}
       <section id="notice" className="py-28 max-w-[1200px] mx-auto px-6 sm:px-12">
         <FadeInSection>
-          <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Notice</p>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Notice</h2>
+          <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Notice</h2>
           <p className="text-base text-text-sub leading-relaxed max-w-2xl mb-10">
             KHUX의 공지사항과 주요 안내를 확인하세요.
           </p>
@@ -731,8 +723,7 @@ export function Home() {
           <section className="py-28">
             <FadeInSection>
               <div className="max-w-[1200px] mx-auto px-6 sm:px-12 text-center">
-                <p className="text-xs font-bold tracking-[0.15em] uppercase text-primary mb-5">Join Us</p>
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl mb-6">Grow With KHUX</h2>
+                <h2 className="text-4xl sm:text-5xl lg:text-6xl mb-6 text-primary">Grow With KHUX</h2>
                 <p className="text-base text-text-sub max-w-2xl mx-auto leading-relaxed mb-10">
                   UX/UI 디자인에 관심있는 모든 분들을 환영합니다.<br />함께 배우고, 연구하고, 성장하는 커뮤니티에 참여하세요.
                 </p>
