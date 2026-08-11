@@ -45,6 +45,28 @@ export async function uploadImage(file: File): Promise<string> {
   return data.url;
 }
 
+// Upload an application attachment (public - no login required, used by the recruit form)
+export async function uploadApplicationFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch(`${API_BASE_URL}/upload-application-file`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${publicAnonKey}`,
+    },
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Upload failed");
+  }
+
+  const data = await res.json();
+  return data.url;
+}
+
 // Proxy upload: fetch external image URL via Edge Function and store it
 export async function proxyUploadImage(imageUrl: string): Promise<string> {
   const { data: { session } } = await supabase.auth.getSession();

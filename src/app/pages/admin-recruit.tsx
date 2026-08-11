@@ -304,6 +304,7 @@ export function AdminRecruitTab() {
                     <option value="textarea">장문</option>
                     <option value="text">단문</option>
                     <option value="url">링크</option>
+                    <option value="file">파일</option>
                     <option value="select">선택형</option>
                     <option value="checkbox">동의(체크박스)</option>
                   </select>

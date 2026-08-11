@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
-import { CheckCircle, Send, Calendar, Clock, FileText } from "lucide-react";
-import { apiFetch } from "../../utils/supabase-client";
+import { CheckCircle, Send, Calendar, Clock, FileText, Loader2, Paperclip } from "lucide-react";
+import { apiFetch, uploadApplicationFile } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG, formatDate } from "../types/recruit-config";
 import type { RecruitConfig } from "../types/recruit-config";
+
+// 파일 항목의 form 값은 `{ url, name }`을 JSON 문자열로 저장한다 (원본 파일명 표시를 위해).
+function parseFileAnswer(raw: string): { url: string; name: string } {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.url === "string") {
+      return { url: parsed.url, name: parsed.name || parsed.url.split("/").pop() || parsed.url };
+    }
+  } catch {
+    // not JSON — fall through
+  }
+  return { url: raw, name: raw.split("/").pop() || raw };
+}
 
 const INPUT_CLASS = "w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring";
 
@@ -25,6 +38,7 @@ export function Recruit() {
   const [form, setForm] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [fileUploading, setFileUploading] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     apiFetch("/recruit-config")
@@ -54,6 +68,20 @@ export function Recruit() {
 
   const handleCheckboxChange = (name: string, checked: boolean) => {
     setForm((prev) => ({ ...prev, [name]: checked ? "true" : "" }));
+  };
+
+  const handleFileChange = async (fieldId: string, file: File | null) => {
+    if (!file) return;
+    setFileUploading((prev) => ({ ...prev, [fieldId]: true }));
+    try {
+      const url = await uploadApplicationFile(file);
+      setForm((prev) => ({ ...prev, [fieldId]: JSON.stringify({ url, name: file.name }) }));
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      alert("파일 업로드에 실패했습니다. 다시 시도해주세요.");
+    } finally {
+      setFileUploading((prev) => ({ ...prev, [fieldId]: false }));
+    }
   };
 
   // 같은 excludeGroup을 공유하는 select 항목들끼리, 다른 항목에서 이미 선택된 값을 제외
@@ -272,6 +300,27 @@ export function Recruit() {
                           <option key={opt} value={opt}>{opt}</option>
                         ))}
                       </select>
+                    ) : q.type === "file" ? (
+                      <div>
+                        {q.placeholder && (
+                          <p className="text-xs text-muted-foreground mb-2 whitespace-pre-wrap">{q.placeholder}</p>
+                        )}
+                        <input
+                          type="file"
+                          onChange={(e) => handleFileChange(q.id, e.target.files?.[0] ?? null)}
+                          required={q.required && !form[q.id]}
+                          className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                        />
+                        {fileUploading[q.id] ? (
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> 업로드 중...
+                          </p>
+                        ) : form[q.id] ? (
+                          <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1.5">
+                            <Paperclip className="h-3.5 w-3.5" /> {parseFileAnswer(form[q.id]).name} 업로드 완료
+                          </p>
+                        ) : null}
+                      </div>
                     ) : q.type === "checkbox" ? (
                       <label className="flex items-start gap-2.5 text-sm text-muted-foreground cursor-pointer">
                         <input
@@ -299,7 +348,7 @@ export function Recruit() {
                 ))}
 
                 {/* Submit */}
-                <button type="submit" disabled={submitting}
+                <button type="submit" disabled={submitting || Object.values(fileUploading).some(Boolean)}
                   className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-lg font-medium">
                   {submitting ? "제출 중..." : (<>지원서 제출<Send className="h-5 w-5" /></>)}
                 </button>

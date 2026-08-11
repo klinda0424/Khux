@@ -16,7 +16,7 @@ export interface RecruitQuestion {
   placeholder: string;
   required: boolean;
   visible: boolean;
-  type: "textarea" | "url" | "text" | "select" | "checkbox";
+  type: "textarea" | "url" | "text" | "select" | "checkbox" | "file";
   rows?: number;
   maxLength?: number; // type이 "textarea"일 때 글자수 제한 (선택)
   deletable?: boolean; // custom questions can be fully deleted
@@ -81,11 +81,11 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
     },
     {
       id: "portfolio",
-      label: "포트폴리오 링크",
-      placeholder: "https://... (선택)",
+      label: "포트폴리오 파일",
+      placeholder: "PDF, 이미지, PPT 등 자유롭게 첨부해주세요. (선택)",
       required: false,
       visible: true,
-      type: "url",
+      type: "file",
       deletable: true,
     },
   ],

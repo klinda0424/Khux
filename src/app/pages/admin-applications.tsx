@@ -7,6 +7,7 @@ import {
   Phone,
   Mail,
   ExternalLink,
+  Download,
   Search,
   User,
   Trash2,
@@ -60,6 +61,19 @@ const AVATAR_BG = [
 
 function avatarBg(index: number) {
   return AVATAR_BG[index % AVATAR_BG.length];
+}
+
+// 파일 항목의 답변은 `{ url, name }` JSON 문자열로 저장되어 있다 (구버전 링크 데이터는 순수 URL 문자열일 수 있음).
+function parseFileAnswer(raw: string): { url: string; name: string } {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.url === "string") {
+      return { url: parsed.url, name: parsed.name || parsed.url.split("/").pop() || parsed.url };
+    }
+  } catch {
+    // not JSON — fall through
+  }
+  return { url: raw, name: raw.split("/").pop() || raw };
 }
 
 function formatDate(iso: string) {
@@ -497,6 +511,26 @@ function DetailPanel({
                   >
                     <ExternalLink className="h-3.5 w-3.5" />
                     {text}
+                  </a>
+                </div>
+              );
+            }
+            if (q.type === "file") {
+              const { url, name } = parseFileAnswer(text);
+              return (
+                <div key={q.id}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 whitespace-pre-wrap">
+                    {q.label}
+                  </p>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download={name}
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    {name}
                   </a>
                 </div>
               );
