@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, ExternalLink, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Link } from "react-router";
 import { apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
@@ -58,10 +58,6 @@ export function AdminRecruitTab() {
     }));
   };
 
-  const updateBasicFieldOptions = (id: string, raw: string) => {
-    updateBasicField(id, "options", raw.split(",").map((o) => o.trim()).filter(Boolean));
-  };
-
   const addBasicField = () => {
     const newF: RecruitBasicField = {
       id: `field_${Date.now()}`,
@@ -84,10 +80,6 @@ export function AdminRecruitTab() {
       ...prev,
       questions: prev.questions.map((q) => (q.id === id ? { ...q, [field]: value } : q)),
     }));
-  };
-
-  const updateQuestionOptions = (id: string, raw: string) => {
-    updateQuestion(id, "options", raw.split(",").map((o) => o.trim()).filter(Boolean));
   };
 
   const addQuestion = () => {
@@ -261,15 +253,9 @@ export function AdminRecruitTab() {
                 </div>
               </div>
               {f.type === "select" && (
-                <div className="mt-2 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                  <input type="text" value={(f.options ?? []).join(", ")}
-                    onChange={(e) => updateBasicFieldOptions(f.id, e.target.value)}
-                    className="flex-1 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                    placeholder="선택지를 쉼표(,)로 구분해 입력 (예: Leaders, Education, Operations)" />
-                  <input type="text" value={f.excludeGroup ?? ""}
-                    onChange={(e) => updateBasicField(f.id, "excludeGroup", e.target.value)}
-                    className="w-40 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                    placeholder="중복방지 그룹명 (선택, 예: 지망순위)" />
+                <div className="mt-2 space-y-2.5" onClick={(e) => e.stopPropagation()}>
+                  <OptionsEditor options={f.options ?? []} onChange={(opts) => updateBasicField(f.id, "options", opts)} />
+                  <ExcludeGroupField value={f.excludeGroup ?? ""} onChange={(v) => updateBasicField(f.id, "excludeGroup", v)} />
                 </div>
               )}
               <div className="flex justify-end text-xs text-muted-foreground gap-1 items-center mt-2">
@@ -363,15 +349,9 @@ export function AdminRecruitTab() {
                 )}
 
                 {q.type === "select" && (
-                  <div className="flex items-center gap-2 mt-3">
-                    <input type="text" value={(q.options ?? []).join(", ")}
-                      onChange={(e) => updateQuestionOptions(q.id, e.target.value)}
-                      className="flex-1 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                      placeholder="선택지를 쉼표(,)로 구분해 입력 (예: 상, 중, 하)" />
-                    <input type="text" value={q.excludeGroup ?? ""}
-                      onChange={(e) => updateQuestion(q.id, "excludeGroup", e.target.value)}
-                      className="w-40 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                      placeholder="중복방지 그룹명 (선택)" />
+                  <div className="mt-3 space-y-2.5">
+                    <OptionsEditor options={q.options ?? []} onChange={(opts) => updateQuestion(q.id, "options", opts)} />
+                    <ExcludeGroupField value={q.excludeGroup ?? ""} onChange={(v) => updateQuestion(q.id, "excludeGroup", v)} />
                   </div>
                 )}
               </div>
@@ -399,6 +379,80 @@ export function AdminRecruitTab() {
           새로고침
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── 선택형 항목 옵션 에디터 ──────────────────────────────────────────────────────
+
+function OptionsEditor({
+  options, onChange,
+}: {
+  options: string[];
+  onChange: (opts: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+
+  const addOption = () => {
+    const value = draft.trim();
+    if (!value || options.includes(value)) { setDraft(""); return; }
+    onChange([...options, value]);
+    setDraft("");
+  };
+
+  const removeOption = (opt: string) => {
+    onChange(options.filter((o) => o !== opt));
+  };
+
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground block mb-1.5">선택지</label>
+      {options.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-1.5">
+          {options.map((opt) => (
+            <span key={opt}
+              className="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 text-xs bg-primary/10 text-primary rounded-full">
+              {opt}
+              <button type="button" onClick={() => removeOption(opt)}
+                className="p-0.5 rounded-full hover:bg-primary/20 transition-colors">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-1.5">
+        <input type="text" value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") { e.preventDefault(); addOption(); }
+          }}
+          placeholder="선택지를 입력하고 Enter (또는 추가 버튼)"
+          className="flex-1 text-xs px-3 py-1.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary" />
+        <button type="button" onClick={addOption}
+          className="px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors shrink-0">
+          추가
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ExcludeGroupField({
+  value, onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] text-muted-foreground block mb-1.5">
+        중복 선택 방지 그룹 (선택) — 같은 이름을 적은 선택형 항목끼리, 다른 항목에서 이미 고른 선택지를 서로 제외합니다. 예: 1지망·2지망·3지망 항목에 전부 <code>부서지망</code>이라고 적으면 중복 선택이 안 됩니다.
+      </label>
+      <input type="text" value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+        placeholder="비워두면 미적용" />
     </div>
   );
 }
