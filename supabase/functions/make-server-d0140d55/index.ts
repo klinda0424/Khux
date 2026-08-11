@@ -574,6 +574,49 @@ app.post("/make-server-d0140d55/proxy-upload-image", async (c) => {
 
 // ============ Applications CRUD ============
 
+// Upload an application attachment (public - used by the recruit form, e.g. portfolio file)
+// 지원서 제출 전 단계라 로그인 세션이 없으므로 인증 없이 허용한다. 용량 제한은 별도로 두지 않는다.
+app.post("/make-server-d0140d55/upload-application-file", async (c) => {
+  try {
+    const formData = await c.req.formData();
+    const file = formData.get('file') as File;
+    if (!file) return c.json({ error: "No file provided" }, 400);
+
+    const fileExt = file.name.split('.').pop() || 'bin';
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${fileExt}`;
+    const filePath = `applications/${fileName}`;
+
+    // Ensure bucket exists
+    const { data: buckets } = await supabase.storage.listBuckets();
+    const bucketExists = buckets?.some(b => b.name === 'applications');
+    if (!bucketExists) {
+      await supabase.storage.createBucket('applications', { public: true });
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const { error: uploadError } = await supabase.storage
+      .from('applications')
+      .upload(filePath, arrayBuffer, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.log(`Application file upload error: ${uploadError.message}`);
+      return c.json({ error: uploadError.message }, 500);
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('applications')
+      .getPublicUrl(filePath);
+
+    return c.json({ url: urlData.publicUrl, fileName: file.name });
+  } catch (error) {
+    console.log(`Error uploading application file: ${error}`);
+    return c.json({ error: "Failed to upload file" }, 500);
+  }
+});
+
 // Get all applications (protected - admin only)
 app.get("/make-server-d0140d55/applications", async (c) => {
   try {
@@ -594,8 +637,20 @@ app.post("/make-server-d0140d55/applications", async (c) => {
   try {
     const data = await c.req.json();
 
-    if (!data.name || !data.studentId || !data.major || !data.phone || !data.email || !data.team || !data.motivation) {
-      return c.json({ error: "Required fields are missing" }, 400);
+    // 지원서 폼은 어드민에서 항목을 자유롭게 추가/삭제/숨김 처리할 수 있으므로,
+    // 고정 필드명이 아니라 현재 저장된 recruit-config의 필수 항목 기준으로 검증한다.
+    const config = await kv.get("recruit:config");
+    const requiredFields = [
+      ...((config?.basicFields ?? []) as any[]),
+      ...((config?.questions ?? []) as any[]),
+    ].filter((f) => f.required && f.visible);
+
+    const missing = requiredFields.filter((f) => !data[f.id]);
+    if (missing.length > 0) {
+      return c.json(
+        { error: `Required fields are missing: ${missing.map((f) => f.label).join(", ")}` },
+        400,
+      );
     }
 
     const id = crypto.randomUUID();
