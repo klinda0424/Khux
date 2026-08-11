@@ -57,12 +57,6 @@ function parsePortfolioAnswer(raw: string): { mode: "url" | "file"; url: string;
 
 const INPUT_CLASS = "w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring";
 
-// 포트폴리오 PDF 직접 업로드 한도.
-// 업로드가 Edge Function의 요청 본문을 거쳐 Storage로 들어가므로, 버킷 한도(기본 50MB)와
-// 별개로 함수 게이트웨이 한도에 먼저 걸릴 수 있다. 큰 파일은 "링크로 제출"을 안내한다.
-const PORTFOLIO_MAX_MB = 50;
-const PORTFOLIO_MAX_BYTES = PORTFOLIO_MAX_MB * 1024 * 1024;
-
 const BASIC_FIELD_INPUT_TYPE: Record<string, string> = {
   name: "text",
   studentId: "text",
@@ -141,14 +135,6 @@ export function Recruit() {
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
     if (!isPdf) {
       alert("PDF 파일만 업로드할 수 있습니다.");
-      return;
-    }
-    if (file.size > PORTFOLIO_MAX_BYTES) {
-      alert(
-        `PDF 파일은 최대 ${PORTFOLIO_MAX_MB}MB까지 업로드할 수 있습니다.\n` +
-          `현재 파일: ${(file.size / 1024 / 1024).toFixed(1)}MB\n\n` +
-          `용량이 큰 경우 구글 드라이브 등에 업로드한 뒤 "링크로 제출"을 이용해주세요.`
-      );
       return;
     }
     await handleFileChange(fieldId, file);
@@ -439,13 +425,6 @@ export function Recruit() {
                                 <Paperclip className="h-3.5 w-3.5" /> {parsePortfolioAnswer(form[q.id]).name} 업로드 완료
                               </p>
                             ) : null}
-                            <p className="text-xs text-muted-foreground mt-2">
-                              PDF 파일은 최대 {PORTFOLIO_MAX_MB}MB까지 업로드할 수 있습니다.
-                            </p>
-                            <p className="text-xs text-muted-foreground/70 mt-1">
-                              * 파일 용량이 크면 구글 드라이브 등에 업로드한 뒤 "링크로 제출"을 이용해주세요.
-                              (링크 공유 권한을 '링크가 있는 모든 사용자'로 설정해주세요.)
-                            </p>
                           </div>
                         )}
                       </div>
