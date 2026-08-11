@@ -4,6 +4,7 @@ import { ArticleDetail } from "./pages/article-detail";
 import { ActivityDetail } from "./pages/activity-detail";
 import { Gallery } from "./pages/gallery";
 import { Recruit } from "./pages/recruit";
+import { RecruitLanding } from "./pages/recruit-landing";
 import { AdminLogin } from "./pages/admin-login";
 import { AdminDashboard } from "./pages/admin-dashboard";
 import { AdminApplications } from "./pages/admin-applications";
@@ -31,7 +32,7 @@ const recruitOnlyRoutes = [
     path: "/",
     Component: RecruitOnlyLayout,
     children: [
-      { index: true, Component: Recruit },
+      { index: true, Component: RecruitLanding },
       { path: "recruit", Component: Recruit },
       { path: "*", Component: NotFound },
     ],
