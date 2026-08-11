@@ -64,6 +64,104 @@ const LANDING_STYLES = `
 
 .khux-landing section{ position:relative; z-index:1; }
 
+/* ── 인트로: 첫 화면을 가득 채우고, 스크롤하면 기존 랜딩이 이어짐 ── */
+.khux-landing .intro{
+  position:relative;
+  min-height:100svh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:calc(64px + 2vh) 24px 72px;
+  overflow:hidden;
+  background:
+    radial-gradient(120% 80% at 50% 18%, rgba(45,212,166,0.16), transparent 60%),
+    linear-gradient(180deg, #04201f 0%, #021314 45%, var(--bg) 100%);
+}
+.khux-landing .intro-eyebrow{
+  font-size:clamp(13px,1.6vw,15px);
+  letter-spacing:.02em;
+  color:rgba(255,255,255,0.55);
+  margin-bottom:clamp(16px,4vh,44px);
+}
+.khux-landing .intro-mark{
+  width:clamp(120px,16vw,185px);
+  aspect-ratio:1/1;
+  object-fit:contain;
+  /* 임시 마크(불투명 배경)의 어두운 배경을 지워 3D 에셋 교체 전까지 자연스럽게 보이게 함 */
+  mix-blend-mode:screen;
+  filter:
+    drop-shadow(0 0 40px rgba(45,212,166,0.45))
+    drop-shadow(0 0 120px rgba(45,212,166,0.25));
+  animation:khux-intro-float 7s ease-in-out infinite;
+}
+@keyframes khux-intro-float{
+  0%,100%{ transform:translateY(0) rotate(0deg); }
+  50%{ transform:translateY(-14px) rotate(-2deg); }
+}
+.khux-landing .intro h1{
+  margin-top:clamp(20px,4vh,44px);
+  font-size:clamp(32px,5.6vw,56px);
+  font-weight:800;
+  line-height:1.22;
+  letter-spacing:-0.02em;
+  color:#fff;
+}
+.khux-landing .intro-date{
+  margin-top:18px;
+  font-size:clamp(16px,2.6vw,22px);
+  font-weight:600;
+  letter-spacing:.06em;
+  color:var(--mint);
+}
+.khux-landing .intro-cta{
+  margin-top:clamp(28px,5vh,48px);
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:16px 34px;
+  border-radius:999px;
+  background:#fff;
+  color:#04201f;
+  font-size:clamp(16px,2.4vw,20px);
+  font-weight:700;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.khux-landing .intro-cta:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 34px rgba(45,212,166,0.32);
+}
+.khux-landing .intro-cta svg{ width:22px; height:22px; color:#179AC9; }
+.khux-landing .intro-scroll{
+  position:absolute;
+  left:50%;
+  bottom:28px;
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  letter-spacing:.14em;
+  color:rgba(255,255,255,0.45);
+}
+.khux-landing .intro-scroll span{
+  display:block;
+  width:1px;
+  height:38px;
+  background:linear-gradient(to bottom, rgba(45,212,166,0.7), transparent);
+  animation:khux-scroll-hint 2s ease-in-out infinite;
+}
+@keyframes khux-scroll-hint{
+  0%,100%{ opacity:.35; transform:scaleY(.6); transform-origin:top; }
+  50%{ opacity:1; transform:scaleY(1); transform-origin:top; }
+}
+@media (prefers-reduced-motion: reduce){
+  .khux-landing .intro-mark,
+  .khux-landing .intro-scroll span{ animation:none; }
+}
+
 .khux-landing .hero{ padding:96px 0 96px; text-align:center; }
 .khux-landing .badge{
   display:inline-flex; align-items:center; gap:8px;
@@ -229,6 +327,41 @@ export function RecruitLanding() {
       <style>{LANDING_STYLES}</style>
 
       <div className="track" />
+
+      {/* 인트로: 첫 화면. 스크롤하면 아래 기존 랜딩이 이어진다. */}
+      <section className="intro">
+        <p className="intro-eyebrow">경희대학교 UX/HCI학회 KHUX</p>
+
+        <img
+          src="/intro-mark.png"
+          alt="KHUX"
+          className="intro-mark"
+          width={340}
+          height={340}
+        />
+
+        <h1>
+          치열한 고민과
+          <br />
+          밀도 있는 성장
+        </h1>
+
+        <p className="intro-date mono">08.12 - 08.23</p>
+
+        <Link to="/recruit" className="intro-cta">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"
+               strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+          </svg>
+          지금 신청하기
+        </Link>
+
+        <div className="intro-scroll" aria-hidden="true">
+          <span />
+          SCROLL
+        </div>
+      </section>
 
       <section className="hero">
         <div className="wrap">
