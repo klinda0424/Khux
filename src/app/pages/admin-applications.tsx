@@ -76,6 +76,19 @@ function parseFileAnswer(raw: string): { url: string; name: string } {
   return { url: raw, name: raw.split("/").pop() || raw };
 }
 
+// portfolio 항목은 링크(순수 URL 문자열) 또는 업로드 파일(`{ url, name }` JSON) 둘 중 하나로 저장된다.
+function parsePortfolioAnswer(raw: string): { mode: "url" | "file"; url: string; name: string } {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.url === "string") {
+      return { mode: "file", url: parsed.url, name: parsed.name || parsed.url.split("/").pop() || parsed.url };
+    }
+  } catch {
+    // not JSON — plain URL
+  }
+  return { mode: "url", url: raw, name: raw };
+}
+
 function formatDate(iso: string) {
   const d = new Date(iso);
   const ymd = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
@@ -532,6 +545,38 @@ function DetailPanel({
                     <Download className="h-3.5 w-3.5" />
                     {name}
                   </a>
+                </div>
+              );
+            }
+            if (q.type === "portfolio") {
+              const parsed = parsePortfolioAnswer(text);
+              return (
+                <div key={q.id}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 whitespace-pre-wrap">
+                    {q.label}
+                  </p>
+                  {parsed.mode === "file" ? (
+                    <a
+                      href={parsed.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={parsed.name}
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      {parsed.name}
+                    </a>
+                  ) : (
+                    <a
+                      href={parsed.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                      {parsed.url}
+                    </a>
+                  )}
                 </div>
               );
             }

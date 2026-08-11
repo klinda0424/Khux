@@ -3,7 +3,7 @@ import { Loader2, Save, RefreshCw, Plus, Trash2, ChevronUp, ChevronDown, Eye, Ey
 import { Link } from "react-router";
 import { apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
-import type { RecruitConfig, RecruitQuestion, RecruitBasicField } from "../types/recruit-config";
+import type { RecruitConfig, RecruitQuestion, RecruitBasicField, RecruitTeam } from "../types/recruit-config";
 
 const INPUT_CLASS =
   "w-full px-4 py-2.5 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm";
@@ -25,7 +25,10 @@ export function AdminRecruitTab() {
       const res = await apiFetch("/recruit-config");
       const data = await res.json();
       if (data.config) {
-        setConfig({ ...DEFAULT_RECRUIT_CONFIG, ...data.config });
+        const merged: RecruitConfig = { ...DEFAULT_RECRUIT_CONFIG, ...data.config };
+        // teams는 나중에 추가된 항목이라, 이전에 저장된 config에는 없을 수 있다.
+        if (!Array.isArray(merged.teams)) merged.teams = DEFAULT_RECRUIT_CONFIG.teams;
+        setConfig(merged);
       }
     } finally {
       setLoading(false);
@@ -73,6 +76,30 @@ export function AdminRecruitTab() {
 
   const deleteBasicField = (id: string) => {
     setConfig((prev) => ({ ...prev, basicFields: prev.basicFields.filter((f) => f.id !== id) }));
+  };
+
+  const updateTeam = (id: string, field: keyof RecruitTeam, value: string) => {
+    setConfig((prev) => ({
+      ...prev,
+      teams: prev.teams.map((t) => (t.id === id ? { ...t, [field]: value } : t)),
+    }));
+  };
+
+  const addTeam = () => {
+    const newT: RecruitTeam = { id: `team_${Date.now()}`, name: "새 팀", desc: "" };
+    setConfig((prev) => ({ ...prev, teams: [...prev.teams, newT] }));
+  };
+
+  const deleteTeam = (id: string) => {
+    setConfig((prev) => ({ ...prev, teams: prev.teams.filter((t) => t.id !== id) }));
+  };
+
+  const moveTeam = (index: number, dir: -1 | 1) => {
+    const next = index + dir;
+    if (next < 0 || next >= config.teams.length) return;
+    const ts = [...config.teams];
+    [ts[index], ts[next]] = [ts[next], ts[index]];
+    setConfig((prev) => ({ ...prev, teams: ts }));
   };
 
   const updateQuestion = (id: string, field: keyof RecruitQuestion, value: string | boolean | number | string[]) => {
@@ -202,6 +229,57 @@ export function AdminRecruitTab() {
         </div>
       </section>
 
+      {/* 모집 팀 소개 */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">모집 팀 소개</h3>
+          <button onClick={addTeam}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded-lg transition-colors">
+            <Plus className="h-3.5 w-3.5" />
+            팀 추가
+          </button>
+        </div>
+        <div className="space-y-2">
+          {config.teams.length === 0 && (
+            <p className="px-4 py-3 text-xs text-muted-foreground bg-card border border-border rounded-lg">
+              등록된 팀이 없습니다. "팀 추가"로 모집 팀을 등록하세요.
+            </p>
+          )}
+          {config.teams.map((t, i) => (
+            <div key={t.id} className="px-4 py-3 bg-card border border-border rounded-lg">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 space-y-1">
+                  <input type="text" value={t.name}
+                    onChange={(e) => updateTeam(t.id, "name", e.target.value)}
+                    className="text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full"
+                    placeholder="팀 이름 (예: Education)" />
+                  <input type="text" value={t.desc}
+                    onChange={(e) => updateTeam(t.id, "desc", e.target.value)}
+                    className="text-xs text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full"
+                    placeholder="팀 설명" />
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex flex-col gap-0.5">
+                    <button onClick={() => moveTeam(i, -1)} disabled={i === 0}
+                      className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => moveTeam(i, 1)} disabled={i === config.teams.length - 1}
+                      className="p-0.5 rounded hover:bg-muted disabled:opacity-30 transition-colors">
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  <button onClick={() => deleteTeam(t.id)}
+                    className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* 기본 정보 항목 */}
       <section>
         <div className="flex items-center justify-between mb-3">
@@ -305,6 +383,7 @@ export function AdminRecruitTab() {
                     <option value="text">단문</option>
                     <option value="url">링크</option>
                     <option value="file">파일</option>
+                    <option value="portfolio">포트폴리오(링크/파일)</option>
                     <option value="select">선택형</option>
                     <option value="checkbox">동의(체크박스)</option>
                   </select>
@@ -357,9 +436,19 @@ export function AdminRecruitTab() {
                 )}
               </div>
 
-              <div className="flex justify-end text-xs text-muted-foreground gap-1 items-center">
-                {q.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                {q.visible ? "표시됨" : "숨겨짐"}
+              <div className="flex justify-end items-center gap-4 text-xs text-muted-foreground">
+                {q.required && (
+                  <label className="flex items-center gap-1.5 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={!!q.hideRequiredMark}
+                      onChange={(e) => updateQuestion(q.id, "hideRequiredMark", e.target.checked)}
+                      className="h-3 w-3 rounded border-border accent-primary" />
+                    필수 표시(*) 숨김
+                  </label>
+                )}
+                <span className="flex items-center gap-1">
+                  {q.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  {q.visible ? "표시됨" : "숨겨짐"}
+                </span>
               </div>
             </div>
           ))}

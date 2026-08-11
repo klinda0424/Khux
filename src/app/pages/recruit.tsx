@@ -1,8 +1,21 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, Send, Calendar, Clock, FileText, Loader2, Paperclip } from "lucide-react";
 import { apiFetch, uploadApplicationFile } from "../../utils/supabase-client";
-import { DEFAULT_RECRUIT_CONFIG, formatDate } from "../types/recruit-config";
+import { DEFAULT_RECRUIT_CONFIG, formatDate, splitBracketSegments } from "../types/recruit-config";
 import type { RecruitConfig } from "../types/recruit-config";
+
+// 대괄호로 감싼 구간([Deep Dive] 등)을 굵게 렌더링하는 폼 라벨.
+// required 항목은 끝에 "*"를 붙이되, hideRequiredMark가 켜진 항목은 표시하지 않는다.
+function FieldLabel({ label, required, hideMark }: { label: string; required?: boolean; hideMark?: boolean }) {
+  return (
+    <label className="block text-base font-medium mb-2 whitespace-pre-wrap">
+      {splitBracketSegments(label).map((seg, i) =>
+        seg.bold ? <strong key={i} className="font-bold">{seg.text}</strong> : <span key={i}>{seg.text}</span>
+      )}
+      {required && !hideMark ? " *" : ""}
+    </label>
+  );
+}
 
 // 파일 항목의 form 값은 `{ url, name }`을 JSON 문자열로 저장한다 (원본 파일명 표시를 위해).
 function parseFileAnswer(raw: string): { url: string; name: string } {
@@ -15,6 +28,19 @@ function parseFileAnswer(raw: string): { url: string; name: string } {
     // not JSON — fall through
   }
   return { url: raw, name: raw.split("/").pop() || raw };
+}
+
+// portfolio 항목은 링크(순수 URL 문자열) 또는 업로드 파일(`{ url, name }` JSON) 둘 중 하나로 저장된다.
+function parsePortfolioAnswer(raw: string): { mode: "url" | "file"; url: string; name: string } {
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed.url === "string") {
+      return { mode: "file", url: parsed.url, name: parsed.name || parsed.url.split("/").pop() || parsed.url };
+    }
+  } catch {
+    // not JSON — plain URL
+  }
+  return { mode: "url", url: raw, name: raw };
 }
 
 const INPUT_CLASS = "w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring";
@@ -39,6 +65,7 @@ export function Recruit() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fileUploading, setFileUploading] = useState<Record<string, boolean>>({});
+  const [portfolioMode, setPortfolioMode] = useState<Record<string, "url" | "file">>({});
 
   useEffect(() => {
     apiFetch("/recruit-config")
@@ -46,6 +73,8 @@ export function Recruit() {
       .then(({ config: cfg }) => {
         if (!cfg) return;
         const merged: RecruitConfig = { ...DEFAULT_RECRUIT_CONFIG, ...cfg };
+        // teams는 나중에 추가된 항목이라, 이전에 저장된 config에는 없을 수 있다.
+        if (!Array.isArray(merged.teams)) merged.teams = DEFAULT_RECRUIT_CONFIG.teams;
         merged.questions = merged.questions.filter((q) => !HIDDEN_QUESTION_IDS.includes(q.id));
         merged.basicFields = merged.basicFields.filter((f) => !HIDDEN_BASIC_FIELD_IDS.includes(f.id));
         setConfig(merged);
@@ -82,6 +111,21 @@ export function Recruit() {
     } finally {
       setFileUploading((prev) => ({ ...prev, [fieldId]: false }));
     }
+  };
+
+  const handlePortfolioModeChange = (fieldId: string, mode: "url" | "file") => {
+    setPortfolioMode((prev) => ({ ...prev, [fieldId]: mode }));
+    setForm((prev) => ({ ...prev, [fieldId]: "" }));
+  };
+
+  const handlePortfolioFileChange = async (fieldId: string, file: File | null) => {
+    if (!file) return;
+    const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      alert("PDF 파일만 업로드할 수 있습니다.");
+      return;
+    }
+    await handleFileChange(fieldId, file);
   };
 
   // 같은 excludeGroup을 공유하는 select 항목들끼리, 다른 항목에서 이미 선택된 값을 제외
@@ -174,8 +218,8 @@ export function Recruit() {
           {/* Header */}
           <div className="mb-12">
             <h1 className="text-4xl sm:text-5xl mb-4">Recruit</h1>
-            <p className="text-lg text-muted-foreground">
-              {config.generation} 멤버를 모집합니다. {config.description}
+            <p className="text-lg text-muted-foreground whitespace-pre-wrap">
+              {config.generation} 멤버를 모집합니다.{"\n"}{config.description}
             </p>
           </div>
 
@@ -214,13 +258,8 @@ export function Recruit() {
           <div className="mb-12 p-8 bg-gradient-to-br from-primary/5 to-accent/10 rounded-2xl border border-border">
             <h2 className="text-2xl mb-6">모집 팀 소개</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { name: "Leaders",    desc: "학회의 비전과 방향성을 수립하고 활동 전반을 리딩" },
-                { name: "Education",  desc: "UX/UI 커리큘럼 기획 및 교육 콘텐츠 제작" },
-                { name: "Operations", desc: "학회 운영 관리 및 조직 문화 구축" },
-                { name: "Growth",     desc: "브랜드 전략 수립 및 대외 활동 주도" },
-              ].map((team) => (
-                <div key={team.name} className="p-4 bg-background/60 rounded-xl">
+              {config.teams.map((team) => (
+                <div key={team.id} className="p-4 bg-background/60 rounded-xl">
                   <h4 className="font-medium mb-1">{team.name}</h4>
                   <p className="text-sm text-muted-foreground">{team.desc}</p>
                 </div>
@@ -242,9 +281,7 @@ export function Recruit() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {visibleBasicFields.map((f) => (
                     <div key={f.id}>
-                      <label className="block text-sm font-medium mb-2">
-                        {f.label}{f.required ? " *" : ""}
-                      </label>
+                      <FieldLabel label={f.label} required={f.required} />
                       {f.type === "select" ? (
                         <select name={f.id} value={form[f.id] ?? ""} onChange={handleChange}
                           required={f.required} className={INPUT_CLASS}>
@@ -271,9 +308,7 @@ export function Recruit() {
                 {/* Long-form Questions */}
                 {visibleQuestions.map((q) => (
                   <div key={q.id}>
-                    <label className="block text-sm font-medium mb-2 whitespace-pre-wrap">
-                      {q.label}{q.required ? " *" : ""}
-                    </label>
+                    <FieldLabel label={q.label} required={q.required} hideMark={q.hideRequiredMark} />
                     {q.type === "textarea" ? (
                       <div>
                         <textarea
@@ -321,8 +356,68 @@ export function Recruit() {
                           </p>
                         ) : null}
                       </div>
+                    ) : q.type === "portfolio" ? (
+                      <div>
+                        {q.placeholder && (
+                          <p className="text-xs text-muted-foreground mb-2 whitespace-pre-wrap">{q.placeholder}</p>
+                        )}
+                        <div className="flex gap-2 mb-3">
+                          <button
+                            type="button"
+                            onClick={() => handlePortfolioModeChange(q.id, "url")}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                              (portfolioMode[q.id] ?? "url") === "url"
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border hover:bg-muted"
+                            }`}
+                          >
+                            링크로 제출
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handlePortfolioModeChange(q.id, "file")}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                              portfolioMode[q.id] === "file"
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border hover:bg-muted"
+                            }`}
+                          >
+                            PDF 업로드
+                          </button>
+                        </div>
+                        {(portfolioMode[q.id] ?? "url") === "url" ? (
+                          <input
+                            type="url"
+                            name={q.id}
+                            value={form[q.id] ?? ""}
+                            onChange={handleChange}
+                            required={q.required}
+                            className={INPUT_CLASS}
+                            placeholder="https://..."
+                          />
+                        ) : (
+                          <div>
+                            <input
+                              type="file"
+                              accept="application/pdf,.pdf"
+                              onChange={(e) => handlePortfolioFileChange(q.id, e.target.files?.[0] ?? null)}
+                              required={q.required && !form[q.id]}
+                              className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                            />
+                            {fileUploading[q.id] ? (
+                              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> 업로드 중...
+                              </p>
+                            ) : form[q.id] ? (
+                              <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1.5">
+                                <Paperclip className="h-3.5 w-3.5" /> {parsePortfolioAnswer(form[q.id]).name} 업로드 완료
+                              </p>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
                     ) : q.type === "checkbox" ? (
-                      <label className="flex items-start gap-2.5 text-sm text-muted-foreground cursor-pointer">
+                      <label className="flex items-start gap-2.5 text-base text-muted-foreground cursor-pointer">
                         <input
                           type="checkbox"
                           name={q.id}
