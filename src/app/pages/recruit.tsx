@@ -21,6 +21,7 @@ const HIDDEN_BASIC_FIELD_IDS = ["field_1775024470751"]; // "test"
 
 export function Recruit() {
   const [config, setConfig] = useState<RecruitConfig>(DEFAULT_RECRUIT_CONFIG);
+  const [configLoaded, setConfigLoaded] = useState(false);
   const [form, setForm] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -34,7 +35,9 @@ export function Recruit() {
         merged.questions = merged.questions.filter((q) => !HIDDEN_QUESTION_IDS.includes(q.id));
         merged.basicFields = merged.basicFields.filter((f) => !HIDDEN_BASIC_FIELD_IDS.includes(f.id));
         setConfig(merged);
-      });
+      })
+      .catch((error) => console.error("Failed to load recruit config:", error))
+      .finally(() => setConfigLoaded(true));
   }, []);
 
   // Reset form when config loads (init all question fields to "")
@@ -96,6 +99,16 @@ export function Recruit() {
             <p className="text-muted-foreground mb-2">KHUX에 관심을 가져주셔서 감사합니다.</p>
             <p className="text-muted-foreground">서류 검토 후 개별적으로 연락드리겠습니다.</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!configLoaded) {
+    return (
+      <div className="w-full py-20 sm:py-32">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-lg mx-auto text-center text-muted-foreground">불러오는 중...</div>
         </div>
       </div>
     );
