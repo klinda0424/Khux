@@ -6,14 +6,15 @@ import { Link } from "react-router";
 const LANDING_STYLES = `
 .khux-landing{
   --bg: var(--background);
-  --card: #151816;
+  --card: #0d1119;
   --border: var(--border);
+  --border-strong: rgba(255,255,255,0.18);
   --mint: var(--primary);
   --mint-deep: #17a37d;
   --mint-dim: rgba(45,212,166,0.12);
   --text-1: var(--foreground);
-  --text-2: #9CA6A2;
-  --text-3: #5B6663;
+  --text-2: #98A3A8;
+  --text-3: #565F66;
   position:relative;
   background:var(--bg);
   color:var(--text-1);
@@ -21,10 +22,21 @@ const LANDING_STYLES = `
   line-height:1.6;
   overflow-x:hidden;
 }
-.khux-landing *{box-sizing:border-box;}
+.khux-landing *{box-sizing:border-box; margin:0; padding:0;}
+.khux-landing::before{
+  content:'';
+  position:fixed;
+  top:-220px; left:-220px;
+  width:640px; height:640px;
+  background:radial-gradient(circle, rgba(45,212,166,0.11), transparent 70%);
+  pointer-events:none;
+  z-index:0;
+}
 .khux-landing .mono{font-family:'IBM Plex Mono', monospace;}
 .khux-landing .wrap{max-width:960px; margin:0 auto; padding:0 32px;}
+.khux-landing .wrap-wide{max-width:1180px; margin:0 auto; padding:0 32px;}
 .khux-landing a{color:inherit; text-decoration:none;}
+.khux-landing em{font-style:normal; color:var(--mint);}
 
 .khux-landing .track{
   position:absolute;
@@ -36,7 +48,7 @@ const LANDING_STYLES = `
   transform:translateX(-480px);
   z-index:0;
 }
-@media (max-width:1040px){ .khux-landing .track{display:none;} }
+@media (max-width:1240px){ .khux-landing .track{display:none;} }
 
 .khux-landing .root-mark{
   position:absolute;
@@ -60,64 +72,89 @@ const LANDING_STYLES = `
   opacity:.5;
 }
 .khux-landing .in-view .root-mark{ opacity:1; }
-@media (max-width:1040px){ .khux-landing .root-mark{display:none;} }
+@media (max-width:1240px){ .khux-landing .root-mark{display:none;} }
 
 .khux-landing section{ position:relative; z-index:1; }
 
-.khux-landing .hero{ padding:96px 0 96px; text-align:center; }
-.khux-landing .badge{
+/* HERO */
+.khux-landing .hero{
+  padding:96px 0 64px;
+  overflow:hidden;
+}
+.khux-landing .eyebrow-tag{
   display:inline-flex; align-items:center; gap:8px;
-  padding:6px 14px;
-  border:1px solid var(--border-strong, rgba(255,255,255,0.16));
-  border-radius:999px;
   font-size:12px;
-  letter-spacing:.04em;
+  letter-spacing:.08em;
   color:var(--mint);
   margin-bottom:28px;
-  /* 모집 중임을 알리는 네온 사인 — 천천히 밝아졌다 어두워짐 */
-  animation: khux-badge-neon 3.2s ease-in-out infinite;
 }
-.khux-landing .badge::before{
+.khux-landing .eyebrow-tag::before{
   content:'';
   width:6px; height:6px;
   border-radius:50%;
   background:var(--mint);
-  animation: khux-badge-dot-neon 3.2s ease-in-out infinite;
+  box-shadow:0 0 10px var(--mint);
 }
-@keyframes khux-badge-neon{
-  0%, 100%{
-    border-color:var(--border-strong, rgba(255,255,255,0.16));
-    box-shadow:0 0 0 rgba(0,0,0,0);
-    text-shadow:none;
-  }
-  50%{
-    border-color:color-mix(in srgb, var(--mint) 55%, transparent);
-    box-shadow:0 0 12px color-mix(in srgb, var(--mint) 30%, transparent),
-               inset 0 0 8px color-mix(in srgb, var(--mint) 12%, transparent);
-    text-shadow:0 0 8px color-mix(in srgb, var(--mint) 55%, transparent);
-  }
+.khux-landing .hero-grid{
+  display:grid;
+  grid-template-columns:1.05fr 0.95fr;
+  gap:24px;
+  align-items:center;
 }
-@keyframes khux-badge-dot-neon{
-  0%, 100%{ opacity:.55; box-shadow:0 0 0 rgba(0,0,0,0); }
-  50%{ opacity:1; box-shadow:0 0 8px var(--mint), 0 0 14px color-mix(in srgb, var(--mint) 60%, transparent); }
-}
-/* 모션 최소화를 선호하는 사용자에게는 깜빡임을 끄고 은은한 글로우만 유지 */
-@media (prefers-reduced-motion: reduce){
-  .khux-landing .badge,
-  .khux-landing .badge::before{ animation:none; }
-  .khux-landing .badge{ border-color:color-mix(in srgb, var(--mint) 40%, transparent); }
-}
-.khux-landing .hero h1{
-  font-size:56px;
+.khux-landing .hero-title{
+  font-size:58px;
   font-weight:800;
   letter-spacing:-0.02em;
-  line-height:1.15;
+  line-height:1.18;
   color:var(--text-1);
 }
-.khux-landing .hero h1 em{ font-style:normal; color:var(--mint); }
-@media (max-width:640px){ .khux-landing .hero h1{ font-size:38px; } }
+.khux-landing .hero-org{
+  margin-top:22px;
+  font-size:17px;
+  font-weight:500;
+  color:var(--text-1);
+}
+.khux-landing .hero-date{
+  margin-top:10px;
+  font-size:13px;
+  color:var(--text-3);
+}
+.khux-landing .hero-visual{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:280px;
+}
+.khux-landing .hero-visual::before{
+  content:'';
+  position:absolute;
+  inset:-10%;
+  background:radial-gradient(circle, rgba(45,212,166,0.22), transparent 65%);
+  filter:blur(30px);
+}
+.khux-landing .hero-visual img{
+  position:relative;
+  width:100%;
+  max-width:440px;
+  filter:drop-shadow(0 30px 60px rgba(45,212,166,0.2));
+}
+@media (max-width:860px){
+  .khux-landing .hero-grid{grid-template-columns:1fr; text-align:center;}
+  .khux-landing .hero-title{font-size:42px;}
+  .khux-landing .eyebrow-tag{justify-content:center;}
+  .khux-landing .hero-visual{order:-1; min-height:200px;}
+  .khux-landing .hero-visual img{max-width:260px;}
+}
 
-.khux-landing .hero-cta{ display:flex; justify-content:center; gap:12px; margin-top:40px; flex-wrap:wrap; }
+.khux-landing .hero-cta{
+  display:flex;
+  justify-content:flex-start;
+  gap:12px;
+  margin-top:40px;
+  flex-wrap:wrap;
+}
+@media (max-width:860px){ .khux-landing .hero-cta{justify-content:center;} }
 .khux-landing .btn-primary{
   background:var(--mint);
   color:#06231b;
@@ -132,7 +169,7 @@ const LANDING_STYLES = `
 }
 .khux-landing .btn-primary:hover{ background:#3fe6b8; transform:translateY(-1px); }
 .khux-landing .btn-ghost{
-  border:1px solid var(--border-strong, rgba(255,255,255,0.16));
+  border:1px solid var(--border-strong);
   color:var(--text-1);
   font-weight:600;
   font-size:15px;
@@ -142,43 +179,105 @@ const LANDING_STYLES = `
 }
 .khux-landing .btn-ghost:hover{ border-color:var(--mint); background:var(--mint-dim); }
 
-.khux-landing .meta-row{ display:flex; justify-content:center; gap:32px; margin-top:52px; flex-wrap:wrap; }
+.khux-landing .meta-row{
+  display:flex;
+  justify-content:flex-start;
+  gap:32px;
+  margin-top:56px;
+  padding-top:32px;
+  border-top:1px solid var(--border);
+  flex-wrap:wrap;
+}
+@media (max-width:860px){ .khux-landing .meta-row{justify-content:center; text-align:center;} }
 .khux-landing .meta-item{ text-align:left; }
+@media (max-width:860px){ .khux-landing .meta-item{text-align:center;} }
 .khux-landing .meta-item .k{
-  font-size:11px; color:var(--text-3); letter-spacing:.06em; text-transform:uppercase; margin-bottom:6px;
+  font-size:11px;
+  color:var(--text-3);
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  margin-bottom:6px;
 }
 .khux-landing .meta-item .v{ font-size:15px; color:var(--text-1); font-weight:500; }
 .khux-landing .meta-item .v .mono{ color:var(--mint); }
 
+/* SECTION HEADER */
 .khux-landing .sec-head{ margin-bottom:44px; }
-.khux-landing .eyebrow{ font-size:12px; letter-spacing:.08em; color:var(--mint); margin-bottom:14px; display:block; }
-.khux-landing .sec-head h2{ font-size:30px; font-weight:800; letter-spacing:-0.01em; color:var(--text-1); }
-.khux-landing .sec-head p{ margin-top:12px; font-size:15px; color:var(--text-2); max-width:480px; }
+.khux-landing .eyebrow{
+  font-size:12px;
+  letter-spacing:.08em;
+  color:var(--mint);
+  margin-bottom:14px;
+  display:block;
+}
+.khux-landing .sec-head h2{
+  font-size:34px;
+  font-weight:800;
+  letter-spacing:-0.015em;
+  line-height:1.3;
+  color:var(--text-1);
+}
+.khux-landing .sec-head p{
+  margin-top:14px;
+  font-size:15px;
+  color:var(--text-2);
+  max-width:480px;
+}
 
 .khux-landing section.pad{ padding:88px 0; }
 .khux-landing section.pad + section.pad{ border-top:1px solid var(--border); }
 
+/* WHY */
 .khux-landing .why-grid{
-  display:grid; grid-template-columns:repeat(3,1fr); gap:1px;
-  background:var(--border); border:1px solid var(--border); border-radius:16px; overflow:hidden;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:1px;
+  background:var(--border);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
 }
-.khux-landing .why-card{ background:var(--card); padding:32px 28px; }
-.khux-landing .why-card .num{ font-size:12px; color:var(--text-3); margin-bottom:20px; }
-.khux-landing .why-card h3{ font-size:18px; font-weight:700; margin-bottom:10px; color:var(--text-1); }
+.khux-landing .why-card{
+  background:var(--card);
+  padding:32px 28px;
+}
+.khux-landing .why-card .num{
+  font-size:12px;
+  color:var(--mint);
+  margin-bottom:20px;
+}
+.khux-landing .why-card h3{
+  font-size:18px;
+  font-weight:700;
+  margin-bottom:10px;
+  color:var(--text-1);
+}
 .khux-landing .why-card p{ font-size:14px; color:var(--text-2); }
 @media (max-width:760px){ .khux-landing .why-grid{grid-template-columns:1fr;} }
 
+/* TRACKS */
 .khux-landing .track-list{ display:flex; flex-direction:column; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:16px; overflow:hidden;}
 .khux-landing .track-item{
-  background:var(--card); padding:24px 28px; display:grid; grid-template-columns:180px 1fr; gap:24px; align-items:baseline;
+  background:var(--card);
+  padding:24px 28px;
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:24px;
+  align-items:baseline;
 }
-.khux-landing .track-item .role{ font-size:17px; font-weight:700; color:var(--text-1); }
+.khux-landing .track-item .role{ font-size:17px; font-weight:700; color:var(--mint); }
 .khux-landing .track-item .desc{ font-size:14px; color:var(--text-2); }
 @media (max-width:640px){ .khux-landing .track-item{grid-template-columns:1fr; gap:6px;} }
 
+/* PROCESS */
 .khux-landing .process-list{ display:flex; flex-direction:column; }
 .khux-landing .proc-item{
-  display:grid; grid-template-columns:88px 1fr 140px; gap:20px; align-items:center; padding:22px 0; border-top:1px solid var(--border);
+  display:grid;
+  grid-template-columns:88px 1fr 140px;
+  gap:20px;
+  align-items:center;
+  padding:22px 0;
+  border-top:1px solid var(--border);
 }
 .khux-landing .proc-item:last-child{ border-bottom:1px solid var(--border); }
 .khux-landing .proc-item .step{ font-size:12px; color:var(--mint); }
@@ -189,24 +288,86 @@ const LANDING_STYLES = `
   .khux-landing .proc-item .when{ text-align:left; }
 }
 
-.khux-landing details{ border-top:1px solid var(--border); padding:20px 0; }
+/* FAQ */
+.khux-landing details{
+  border-top:1px solid var(--border);
+  padding:20px 0;
+}
 .khux-landing details:last-child{ border-bottom:1px solid var(--border); }
 .khux-landing summary{
-  cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center;
-  font-size:16px; font-weight:600; color:var(--text-1);
+  cursor:pointer;
+  list-style:none;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:16px;
+  font-weight:600;
+  color:var(--text-1);
 }
 .khux-landing summary::-webkit-details-marker{ display:none; }
-.khux-landing summary::after{ content:'+'; font-size:20px; color:var(--mint); font-weight:400; transition:transform .2s ease; }
+.khux-landing summary::after{
+  content:'+';
+  font-size:20px;
+  color:var(--mint);
+  font-weight:400;
+  transition:transform .2s ease;
+}
 .khux-landing details[open] summary::after{ transform:rotate(45deg); }
-.khux-landing details p{ margin-top:14px; font-size:14px; color:var(--text-2); max-width:600px; }
+.khux-landing details p{
+  margin-top:14px;
+  font-size:14px;
+  color:var(--text-2);
+  max-width:600px;
+}
 
-.khux-landing .final{ text-align:center; padding:100px 0 120px; }
-.khux-landing .final h2{ font-size:34px; font-weight:800; letter-spacing:-0.01em; margin-bottom:16px; }
-.khux-landing .deadline{ font-size:13px; color:var(--text-3); margin-top:20px; }
+/* FINAL CTA */
+.khux-landing .final{
+  text-align:center;
+  padding:120px 0 140px;
+  overflow:hidden;
+  position:relative;
+}
+.khux-landing .final::before{
+  content:'';
+  position:absolute;
+  left:50%; top:50%;
+  width:900px; height:900px;
+  transform:translate(-50%,-50%);
+  background:radial-gradient(circle, rgba(45,212,166,0.10), transparent 65%);
+  pointer-events:none;
+}
+.khux-landing .final-mark{
+  position:absolute;
+  left:50%; top:50%;
+  width:520px;
+  transform:translate(-50%,-50%) rotate(-8deg);
+  opacity:0.05;
+  pointer-events:none;
+}
+.khux-landing .final h2{
+  font-size:46px;
+  font-weight:800;
+  letter-spacing:-0.02em;
+  line-height:1.25;
+  margin-bottom:36px;
+  position:relative;
+}
+.khux-landing .deadline{
+  font-size:13px;
+  color:var(--text-3);
+  margin-top:24px;
+  position:relative;
+}
 .khux-landing .deadline .mono{ color:var(--mint); }
 
-.khux-landing .reveal{ opacity:0; transform:translateY(16px); transition:opacity .6s ease, transform .6s ease; }
+.khux-landing .reveal{
+  opacity:0;
+  transform:translateY(16px);
+  transition:opacity .6s ease, transform .6s ease;
+}
 .khux-landing .in-view .reveal{ opacity:1; transform:translateY(0); }
+
+.khux-landing .hero .reveal{ opacity:1; transform:none; }
 `;
 
 export function RecruitLanding() {
@@ -231,17 +392,28 @@ export function RecruitLanding() {
       <div className="track" />
 
       <section className="hero">
-        <div className="wrap">
-          <span className="badge mono">KHUX 4기 모집 중</span>
-          <h1>
-            지원 후엔,
-            <br />
-            <em>만드는 사람</em>이 됩니다.
-          </h1>
+        <div className="wrap-wide">
+          <div className="hero-grid">
+            <div className="hero-copy">
+              <span className="eyebrow-tag mono">KHUX 4th Recruiting</span>
+              <h1 className="hero-title">
+                치열한 고민과
+                <br />
+                <em>밀도 있는 성장</em>
+              </h1>
+              <p className="hero-org">
+                경희대학교 UX/HCI 학회 <em>KHUX</em>
+              </p>
+              <p className="hero-date mono">2026.08.12 – 2026.08.23 23:59</p>
+            </div>
+            <div className="hero-visual">
+              <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
+            </div>
+          </div>
           <div className="hero-cta">
-            <Link to="/recruit" className="btn-primary">
+            <a href="#apply" className="btn-primary">
               4기 지원하기 →
-            </Link>
+            </a>
             <a href="#tracks" className="btn-ghost">
               모집 분야 보기
             </a>
@@ -272,7 +444,9 @@ export function RecruitLanding() {
         <div className="wrap reveal">
           <div className="sec-head">
             <span className="eyebrow mono">WHY KHUX</span>
-            <h2>세 가지는 분명합니다</h2>
+            <h2>
+              세 가지는 <em>분명합니다</em>
+            </h2>
             <p>전공, 학년, 경험 무관하게 지원할 수 있어요.</p>
           </div>
           <div className="why-grid">
@@ -300,7 +474,9 @@ export function RecruitLanding() {
         <div className="wrap reveal">
           <div className="sec-head">
             <span className="eyebrow mono">RECRUITING TRACKS</span>
-            <h2>3개 분야에서 모집합니다</h2>
+            <h2>
+              3개 분야에서 <em>모집합니다</em>
+            </h2>
             <p>지원서에서 희망 분야를 3지망까지 선택할 수 있어요.</p>
           </div>
           <div className="track-list">
@@ -331,7 +507,9 @@ export function RecruitLanding() {
         <div className="wrap reveal">
           <div className="sec-head">
             <span className="eyebrow mono">PROCESS</span>
-            <h2>지원부터 합류까지</h2>
+            <h2>
+              지원부터 <em>합류까지</em>
+            </h2>
           </div>
           <div className="process-list">
             <div className="proc-item">
@@ -393,12 +571,14 @@ export function RecruitLanding() {
         <div className="wrap reveal">
           <div className="sec-head">
             <span className="eyebrow mono">FAQ</span>
-            <h2>지원 전에 궁금한 것들</h2>
+            <h2>
+              지원 전에 <em>궁금한 것들</em>
+            </h2>
           </div>
           <div>
             <details open>
               <summary>전공 무관하게 지원할 수 있나요?</summary>
-              <p>네. 실제로 3기 멤버 대부분이 서로 다른 전공입니다. 대신 지원 분야에 대한 관심과, 프로젝트를 끝까지 만들어보려는 의지를 봅니다.</p>
+              <p>네. 실제로 4기 멤버 대부분이 서로 다른 전공입니다. 대신 지원 분야에 대한 관심과, 프로젝트를 끝까지 만들어보려는 의지를 봅니다.</p>
             </details>
             <details>
               <summary>활동은 온라인인가요, 오프라인인가요?</summary>
@@ -417,10 +597,14 @@ export function RecruitLanding() {
       </section>
 
       <section className="final" id="apply" data-observe>
-        <div className="root-mark" />
+        <img className="final-mark" src="/khux-mark.webp" alt="" role="presentation" width={628} height={628} />
         <div className="wrap reveal">
-          <h2>4기, 지금 지원하세요</h2>
-          <Link to="/recruit" className="btn-primary" style={{ marginTop: 8 }}>
+          <h2>
+            지금,
+            <br />
+            <em>지원하세요</em>
+          </h2>
+          <Link to="/recruit" className="btn-primary">
             지원서 작성하기 →
           </Link>
           <div className="deadline">
