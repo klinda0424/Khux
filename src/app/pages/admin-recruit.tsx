@@ -332,20 +332,18 @@ export function AdminRecruitTab() {
                       <ChevronDown className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                  {q.deletable && (
-                    <button onClick={() => deleteQuestion(q.id)}
-                      className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                  <button onClick={() => deleteQuestion(q.id)}
+                    className="p-1 text-red-400 hover:bg-red-400/10 rounded transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
 
               <div onClick={(e) => e.stopPropagation()}>
-                <input type="text" value={q.placeholder}
+                <textarea value={q.placeholder} rows={2}
                   onChange={(e) => updateQuestion(q.id, "placeholder", e.target.value)}
-                  className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                  placeholder={q.type === "checkbox" ? "동의 문구 (예: 본인은 개인정보 수집·이용에 동의합니다)" : "플레이스홀더 텍스트"} />
+                  className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary resize-y"
+                  placeholder={q.type === "checkbox" ? "동의 문구 (예: 본인은 개인정보 수집·이용에 동의합니다)" : "플레이스홀더 텍스트 (Shift+Enter로 줄바꿈)"} />
 
                 {q.type === "textarea" && (
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">

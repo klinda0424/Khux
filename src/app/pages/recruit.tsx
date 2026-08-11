@@ -274,7 +274,7 @@ export function Recruit() {
                           required={q.required}
                           className="mt-0.5 h-4 w-4 rounded border-border accent-primary shrink-0"
                         />
-                        <span>{q.placeholder}</span>
+                        <span className="whitespace-pre-wrap">{q.placeholder}</span>
                       </label>
                     ) : (
                       <input

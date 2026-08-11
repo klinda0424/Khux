@@ -67,7 +67,7 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
       visible: true,
       type: "textarea",
       rows: 5,
-      deletable: false,
+      deletable: true,
     },
     {
       id: "experience",
@@ -77,7 +77,7 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
       visible: true,
       type: "textarea",
       rows: 4,
-      deletable: false,
+      deletable: true,
     },
     {
       id: "portfolio",
@@ -86,7 +86,7 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
       required: false,
       visible: true,
       type: "url",
-      deletable: false,
+      deletable: true,
     },
   ],
 };
