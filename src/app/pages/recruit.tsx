@@ -4,15 +4,27 @@ import { apiFetch, uploadApplicationFile } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG, formatDate, splitBracketSegments } from "../types/recruit-config";
 import type { RecruitConfig } from "../types/recruit-config";
 
+function renderBracketBold(text: string, keyPrefix: string) {
+  return splitBracketSegments(text).map((seg, i) =>
+    seg.bold
+      ? <strong key={`${keyPrefix}-${i}`} className="font-bold">{seg.text}</strong>
+      : <span key={`${keyPrefix}-${i}`}>{seg.text}</span>
+  );
+}
+
 // 대괄호로 감싼 구간([Deep Dive] 등)을 굵게 렌더링하는 폼 라벨.
-// required 항목은 끝에 "*"를 붙이되, hideRequiredMark가 켜진 항목은 표시하지 않는다.
+// 필수 표시 "*"는 라벨 전체의 맨 끝이 아니라 첫 줄 끝(예: "...(500자 이내) *")에 붙인다.
+// 안내 문구가 여러 줄 이어지는 질문에서 "*"가 마지막 줄 끝에 덩그러니 남는 걸 피하기 위함.
+// hideRequiredMark가 켜진 항목은 "*"를 아예 표시하지 않는다.
 function FieldLabel({ label, required, hideMark }: { label: string; required?: boolean; hideMark?: boolean }) {
+  const nl = label.indexOf("\n");
+  const firstLine = nl === -1 ? label : label.slice(0, nl);
+  const rest = nl === -1 ? "" : label.slice(nl);
   return (
     <label className="block text-base font-medium mb-2 whitespace-pre-wrap">
-      {splitBracketSegments(label).map((seg, i) =>
-        seg.bold ? <strong key={i} className="font-bold">{seg.text}</strong> : <span key={i}>{seg.text}</span>
-      )}
+      {renderBracketBold(firstLine, "head")}
       {required && !hideMark ? " *" : ""}
+      {rest && renderBracketBold(rest, "rest")}
     </label>
   );
 }
