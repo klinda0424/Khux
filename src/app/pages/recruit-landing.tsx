@@ -75,6 +75,7 @@ const LANDING_STYLES = `
 @media (max-width:1240px){ .khux-landing .root-mark{display:none;} }
 
 .khux-landing section{ position:relative; z-index:1; }
+.khux-landing .track-region{ position:relative; }
 
 /* HERO */
 .khux-landing .hero{
@@ -389,8 +390,6 @@ export function RecruitLanding() {
     <div className="khux-landing">
       <style>{LANDING_STYLES}</style>
 
-      <div className="track" />
-
       <section className="hero">
         <div className="wrap-wide">
           <div className="hero-grid">
@@ -439,7 +438,10 @@ export function RecruitLanding() {
         </div>
       </section>
 
-      <section className="pad" data-observe>
+      <div className="track-region">
+        <div className="track" />
+
+        <section className="pad" data-observe>
         <div className="root-mark" />
         <div className="wrap reveal">
           <div className="sec-head">
@@ -612,6 +614,7 @@ export function RecruitLanding() {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }
