@@ -8,6 +8,7 @@ import { AdminLogin } from "./pages/admin-login";
 import { AdminDashboard } from "./pages/admin-dashboard";
 import { AdminApplications } from "./pages/admin-applications";
 import { Layout } from "./components/layout";
+import { RecruitOnlyLayout } from "./components/recruit-only-layout";
 import { NotFound } from "./pages/not-found";
 import { ReviewLogin } from "./pages/review-login";
 import { DiscordCallback } from "./pages/discord-callback";
@@ -21,7 +22,26 @@ import { WhenToMeet } from "./pages/when-to-meet";
 import { WhenToMeetMembers } from "./pages/when-to-meet-members";
 import { WhenToMeetSchedule } from "./pages/when-to-meet-schedule";
 
-export const router = createBrowserRouter([
+// 리크루팅 전용 배포본(VITE_SITE_MODE=recruit-only)에서는 지원서 페이지만 노출.
+// 같은 코드베이스로 두 개의 Vercel 프로젝트(메인 사이트 / 리크루팅 전용 사이트)를 운영하기 위한 분기.
+const isRecruitOnly = import.meta.env.VITE_SITE_MODE === "recruit-only";
+
+const recruitOnlyRoutes = [
+  {
+    path: "/",
+    Component: RecruitOnlyLayout,
+    children: [
+      { index: true, Component: Recruit },
+      { path: "recruit", Component: Recruit },
+      { path: "*", Component: NotFound },
+    ],
+  },
+  { path: "/admin/login", Component: AdminLogin },
+  { path: "/admin/dashboard", Component: AdminDashboard },
+  { path: "/admin/applications", Component: AdminApplications },
+];
+
+const fullSiteRoutes = [
   {
     path: "/",
     Component: Layout,
@@ -91,4 +111,6 @@ export const router = createBrowserRouter([
     path: "/when-to-meet/schedule/:discordId",
     Component: WhenToMeetSchedule,
   },
-]);
+];
+
+export const router = createBrowserRouter(isRecruitOnly ? recruitOnlyRoutes : fullSiteRoutes);
