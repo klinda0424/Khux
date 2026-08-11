@@ -6,6 +6,8 @@ export interface RecruitBasicField {
   required: boolean;
   visible: boolean;
   deletable?: boolean;
+  options?: string[]; // type이 "select"일 때만 사용
+  excludeGroup?: string; // 같은 그룹명을 가진 select 항목끼리 이미 선택된 값을 서로 제외 (예: 지망 순위)
 }
 
 export interface RecruitQuestion {
@@ -14,9 +16,12 @@ export interface RecruitQuestion {
   placeholder: string;
   required: boolean;
   visible: boolean;
-  type: "textarea" | "url" | "text";
+  type: "textarea" | "url" | "text" | "select" | "checkbox";
   rows?: number;
+  maxLength?: number; // type이 "textarea"일 때 글자수 제한 (선택)
   deletable?: boolean; // custom questions can be fully deleted
+  options?: string[]; // type이 "select"일 때만 사용
+  excludeGroup?: string; // 같은 그룹명을 가진 select 항목끼리 이미 선택된 값을 서로 제외
 }
 
 export interface RecruitConfig {
@@ -51,7 +56,7 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
     { id: "major",     label: "학과",    placeholder: "산업디자인학과",    type: "text",   required: true,  visible: true },
     { id: "phone",     label: "연락처",  placeholder: "010-0000-0000",    type: "tel",    required: true,  visible: true },
     { id: "email",     label: "이메일",  placeholder: "example@khu.ac.kr", type: "email", required: true,  visible: true },
-    { id: "team",      label: "지원 팀", placeholder: "",                  type: "select", required: true,  visible: true },
+    { id: "team",      label: "지원 팀", placeholder: "팀을 선택해주세요",  type: "select", required: true,  visible: true, options: ["Leaders", "Education", "Operations", "Growth"] },
   ],
   questions: [
     {

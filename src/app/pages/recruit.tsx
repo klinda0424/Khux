@@ -12,7 +12,6 @@ const BASIC_FIELD_INPUT_TYPE: Record<string, string> = {
   major: "text",
   phone: "tel",
   email: "email",
-  team: "select",
 };
 
 
@@ -48,6 +47,22 @@ export function Recruit() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleCheckboxChange = (name: string, checked: boolean) => {
+    setForm((prev) => ({ ...prev, [name]: checked ? "true" : "" }));
+  };
+
+  // 같은 excludeGroup을 공유하는 select 항목들끼리, 다른 항목에서 이미 선택된 값을 제외
+  // (예: 1지망/2지망/3지망처럼 서로 중복 선택을 막고 싶은 선택형 항목 묶음)
+  const groupPeers = [...config.basicFields, ...config.questions];
+  const getSelectOptions = (fieldId: string, opts: string[] | undefined, group: string | undefined) => {
+    if (!group) return opts ?? [];
+    const usedElsewhere = groupPeers
+      .filter((peer) => peer.id !== fieldId && peer.excludeGroup === group)
+      .map((peer) => form[peer.id])
+      .filter(Boolean);
+    return (opts ?? []).filter((opt) => !usedElsewhere.includes(opt));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -194,14 +209,13 @@ export function Recruit() {
                       <label className="block text-sm font-medium mb-2">
                         {f.label}{f.required ? " *" : ""}
                       </label>
-                      {f.id === "team" ? (
-                        <select name="team" value={form.team ?? ""} onChange={handleChange}
+                      {f.type === "select" ? (
+                        <select name={f.id} value={form[f.id] ?? ""} onChange={handleChange}
                           required={f.required} className={INPUT_CLASS}>
-                          <option value="">팀을 선택해주세요</option>
-                          <option value="Leaders">Leaders</option>
-                          <option value="Education">Education</option>
-                          <option value="Operations">Operations</option>
-                          <option value="Growth">Growth</option>
+                          <option value="">{f.placeholder || "선택해주세요"}</option>
+                          {getSelectOptions(f.id, f.options, f.excludeGroup).map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
                         </select>
                       ) : (
                         <input
@@ -225,15 +239,43 @@ export function Recruit() {
                       {q.label}{q.required ? " *" : ""}
                     </label>
                     {q.type === "textarea" ? (
-                      <textarea
-                        name={q.id}
-                        value={form[q.id] ?? ""}
-                        onChange={handleChange}
-                        required={q.required}
-                        rows={q.rows ?? 4}
-                        className={`${INPUT_CLASS} resize-none`}
-                        placeholder={q.placeholder}
-                      />
+                      <div>
+                        <textarea
+                          name={q.id}
+                          value={form[q.id] ?? ""}
+                          onChange={handleChange}
+                          required={q.required}
+                          rows={q.rows ?? 4}
+                          maxLength={q.maxLength || undefined}
+                          className={`${INPUT_CLASS} resize-none`}
+                          placeholder={q.placeholder}
+                        />
+                        {!!q.maxLength && (
+                          <p className="text-xs text-muted-foreground text-right mt-1">
+                            {(form[q.id] ?? "").length} / {q.maxLength}
+                          </p>
+                        )}
+                      </div>
+                    ) : q.type === "select" ? (
+                      <select name={q.id} value={form[q.id] ?? ""} onChange={handleChange}
+                        required={q.required} className={INPUT_CLASS}>
+                        <option value="">{q.placeholder || "선택해주세요"}</option>
+                        {getSelectOptions(q.id, q.options, q.excludeGroup).map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : q.type === "checkbox" ? (
+                      <label className="flex items-start gap-2.5 text-sm text-muted-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name={q.id}
+                          checked={form[q.id] === "true"}
+                          onChange={(e) => handleCheckboxChange(q.id, e.target.checked)}
+                          required={q.required}
+                          className="mt-0.5 h-4 w-4 rounded border-border accent-primary shrink-0"
+                        />
+                        <span>{q.placeholder}</span>
+                      </label>
                     ) : (
                       <input
                         type={q.type === "url" ? "url" : "text"}

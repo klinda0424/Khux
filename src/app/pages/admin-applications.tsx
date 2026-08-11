@@ -13,7 +13,12 @@ import {
 } from "lucide-react";
 import { supabase, apiFetch, apiFetchAuth } from "../../utils/supabase-client";
 import { DEFAULT_RECRUIT_CONFIG } from "../types/recruit-config";
-import type { RecruitQuestion } from "../types/recruit-config";
+import type { RecruitQuestion, RecruitBasicField } from "../types/recruit-config";
+
+const FIELD_ICON: Record<string, React.ReactNode> = {
+  phone: <Phone className="h-3.5 w-3.5" />,
+  email: <Mail className="h-3.5 w-3.5" />,
+};
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -76,6 +81,7 @@ export function AdminApplications() {
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState(false);
   const [questions, setQuestions] = useState<RecruitQuestion[]>(DEFAULT_RECRUIT_CONFIG.questions);
+  const [basicFields, setBasicFields] = useState<RecruitBasicField[]>(DEFAULT_RECRUIT_CONFIG.basicFields);
 
   // ── Auth check ─────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -87,6 +93,7 @@ export function AdminApplications() {
     check();
     apiFetch("/recruit-config").then(r => r.json()).then(({ config }) => {
       if (config?.questions) setQuestions(config.questions);
+      if (config?.basicFields) setBasicFields(config.basicFields);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
@@ -334,6 +341,7 @@ export function AdminApplications() {
           {selected ? (
             <DetailPanel
               app={applications.find(a => a.id === selected.id) ?? selected}
+              basicFields={basicFields}
               questions={questions}
               onStatusChange={updateStatus}
               onDelete={deleteApplication}
@@ -394,12 +402,14 @@ function ActionBtn({
 
 function DetailPanel({
   app,
+  basicFields,
   questions,
   onStatusChange,
   onDelete,
   updating,
 }: {
   app: Application;
+  basicFields: RecruitBasicField[];
   questions: RecruitQuestion[];
   onStatusChange: (id: string, status: Status) => void;
   onDelete: (id: string) => void;
@@ -454,10 +464,15 @@ function DetailPanel({
 
         {/* Basic info grid */}
         <div className="grid grid-cols-2 gap-3 mb-8">
-          <InfoCell label="학번" value={app.studentId} />
-          <InfoCell label="학과" value={app.major} />
-          <InfoCell label="연락처" value={app.phone} icon={<Phone className="h-3.5 w-3.5" />} />
-          <InfoCell label="이메일" value={app.email} icon={<Mail className="h-3.5 w-3.5" />} />
+          {basicFields
+            .filter((f) => f.id !== "name" && f.id !== "team")
+            .map((f) => {
+              const value = app[f.id];
+              if (!value) return null;
+              return (
+                <InfoCell key={f.id} label={f.label} value={String(value)} icon={FIELD_ICON[f.id]} />
+              );
+            })}
         </div>
 
         <div className="h-px bg-border mb-8" />
@@ -483,6 +498,14 @@ function DetailPanel({
                     <ExternalLink className="h-3.5 w-3.5" />
                     {text}
                   </a>
+                </div>
+              );
+            }
+            if (q.type === "checkbox") {
+              return (
+                <div key={q.id} className="flex items-center gap-2 text-sm">
+                  <span className="text-emerald-500 font-semibold">✓</span>
+                  <span className="text-muted-foreground">{q.label} 동의함</span>
                 </div>
               );
             }

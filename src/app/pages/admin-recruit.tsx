@@ -51,11 +51,15 @@ export function AdminRecruitTab() {
     }
   };
 
-  const updateBasicField = (id: string, field: keyof RecruitBasicField, value: string | boolean) => {
+  const updateBasicField = (id: string, field: keyof RecruitBasicField, value: string | boolean | string[]) => {
     setConfig((prev) => ({
       ...prev,
       basicFields: prev.basicFields.map((f) => (f.id === id ? { ...f, [field]: value } : f)),
     }));
+  };
+
+  const updateBasicFieldOptions = (id: string, raw: string) => {
+    updateBasicField(id, "options", raw.split(",").map((o) => o.trim()).filter(Boolean));
   };
 
   const addBasicField = () => {
@@ -75,11 +79,15 @@ export function AdminRecruitTab() {
     setConfig((prev) => ({ ...prev, basicFields: prev.basicFields.filter((f) => f.id !== id) }));
   };
 
-  const updateQuestion = (id: string, field: keyof RecruitQuestion, value: string | boolean | number) => {
+  const updateQuestion = (id: string, field: keyof RecruitQuestion, value: string | boolean | number | string[]) => {
     setConfig((prev) => ({
       ...prev,
       questions: prev.questions.map((q) => (q.id === id ? { ...q, [field]: value } : q)),
     }));
+  };
+
+  const updateQuestionOptions = (id: string, raw: string) => {
+    updateQuestion(id, "options", raw.split(",").map((o) => o.trim()).filter(Boolean));
   };
 
   const addQuestion = () => {
@@ -222,23 +230,20 @@ export function AdminRecruitTab() {
                   <input type="text" value={f.label}
                     onChange={(e) => updateBasicField(f.id, "label", e.target.value)}
                     className="text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full" />
-                  {f.type !== "select" && (
-                    <input type="text" value={f.placeholder}
-                      onChange={(e) => updateBasicField(f.id, "placeholder", e.target.value)}
-                      className="text-xs text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full"
-                      placeholder="예시 텍스트" />
-                  )}
+                  <input type="text" value={f.placeholder}
+                    onChange={(e) => updateBasicField(f.id, "placeholder", e.target.value)}
+                    className="text-xs text-muted-foreground bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 w-full"
+                    placeholder={f.type === "select" ? "선택 안내 문구 (예: 팀을 선택해주세요)" : "예시 텍스트"} />
                 </div>
                 <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                  {f.type !== "select" && (
-                    <select value={f.type}
-                      onChange={(e) => updateBasicField(f.id, "type", e.target.value)}
-                      className="text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none">
-                      <option value="text">텍스트</option>
-                      <option value="tel">전화번호</option>
-                      <option value="email">이메일</option>
-                    </select>
-                  )}
+                  <select value={f.type} disabled={f.id === "team"}
+                    onChange={(e) => updateBasicField(f.id, "type", e.target.value)}
+                    className="text-xs bg-background border border-border rounded px-2 py-1 focus:outline-none disabled:opacity-50">
+                    <option value="text">텍스트</option>
+                    <option value="tel">전화번호</option>
+                    <option value="email">이메일</option>
+                    <option value="select">선택형</option>
+                  </select>
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-muted-foreground">필수</span>
                     <button type="button"
@@ -255,6 +260,18 @@ export function AdminRecruitTab() {
                   )}
                 </div>
               </div>
+              {f.type === "select" && (
+                <div className="mt-2 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <input type="text" value={(f.options ?? []).join(", ")}
+                    onChange={(e) => updateBasicFieldOptions(f.id, e.target.value)}
+                    className="flex-1 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    placeholder="선택지를 쉼표(,)로 구분해 입력 (예: Leaders, Education, Operations)" />
+                  <input type="text" value={f.excludeGroup ?? ""}
+                    onChange={(e) => updateBasicField(f.id, "excludeGroup", e.target.value)}
+                    className="w-40 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    placeholder="중복방지 그룹명 (선택, 예: 지망순위)" />
+                </div>
+              )}
               <div className="flex justify-end text-xs text-muted-foreground gap-1 items-center mt-2">
                 {f.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
                 {f.visible ? "표시됨" : "숨겨짐"}
@@ -301,6 +318,8 @@ export function AdminRecruitTab() {
                     <option value="textarea">장문</option>
                     <option value="text">단문</option>
                     <option value="url">링크</option>
+                    <option value="select">선택형</option>
+                    <option value="checkbox">동의(체크박스)</option>
                   </select>
                   {/* 순서 변경 */}
                   <div className="flex flex-col gap-0.5 shrink-0">
@@ -326,14 +345,35 @@ export function AdminRecruitTab() {
                 <input type="text" value={q.placeholder}
                   onChange={(e) => updateQuestion(q.id, "placeholder", e.target.value)}
                   className="w-full text-xs text-muted-foreground px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                  placeholder="플레이스홀더 텍스트" />
+                  placeholder={q.type === "checkbox" ? "동의 문구 (예: 본인은 개인정보 수집·이용에 동의합니다)" : "플레이스홀더 텍스트"} />
 
                 {q.type === "textarea" && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-3">
-                    <span>줄 수</span>
-                    <input type="number" value={q.rows ?? 4} min={2} max={12}
-                      onChange={(e) => updateQuestion(q.id, "rows", Number(e.target.value))}
-                      className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-3">
+                    <div className="flex items-center gap-2">
+                      <span>줄 수</span>
+                      <input type="number" value={q.rows ?? 4} min={2} max={12}
+                        onChange={(e) => updateQuestion(q.id, "rows", Number(e.target.value))}
+                        className="w-16 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span>글자수 제한</span>
+                      <input type="number" value={q.maxLength || ""} min={0} placeholder="제한 없음"
+                        onChange={(e) => updateQuestion(q.id, "maxLength", e.target.value ? Number(e.target.value) : 0)}
+                        className="w-20 px-2 py-1 bg-background border border-border rounded focus:outline-none text-xs" />
+                    </div>
+                  </div>
+                )}
+
+                {q.type === "select" && (
+                  <div className="flex items-center gap-2 mt-3">
+                    <input type="text" value={(q.options ?? []).join(", ")}
+                      onChange={(e) => updateQuestionOptions(q.id, e.target.value)}
+                      className="flex-1 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                      placeholder="선택지를 쉼표(,)로 구분해 입력 (예: 상, 중, 하)" />
+                    <input type="text" value={q.excludeGroup ?? ""}
+                      onChange={(e) => updateQuestion(q.id, "excludeGroup", e.target.value)}
+                      className="w-40 text-xs px-3 py-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                      placeholder="중복방지 그룹명 (선택)" />
                   </div>
                 )}
               </div>
