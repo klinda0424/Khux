@@ -230,7 +230,7 @@ export function Recruit() {
           {/* Header */}
           <div className="mb-12">
             <h1 className="text-4xl sm:text-5xl mb-4">Recruit</h1>
-            <p className="text-lg text-muted-foreground whitespace-pre-wrap">
+            <p className="text-base text-muted-foreground whitespace-pre-wrap">
               {config.generation} 멤버를 모집합니다.{"\n"}{config.description}
             </p>
           </div>

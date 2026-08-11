@@ -74,12 +74,38 @@ const LANDING_STYLES = `
   letter-spacing:.04em;
   color:var(--mint);
   margin-bottom:28px;
+  /* 모집 중임을 알리는 네온 사인 — 천천히 밝아졌다 어두워짐 */
+  animation: khux-badge-neon 3.2s ease-in-out infinite;
 }
 .khux-landing .badge::before{
   content:'';
   width:6px; height:6px;
   border-radius:50%;
   background:var(--mint);
+  animation: khux-badge-dot-neon 3.2s ease-in-out infinite;
+}
+@keyframes khux-badge-neon{
+  0%, 100%{
+    border-color:var(--border-strong, rgba(255,255,255,0.16));
+    box-shadow:0 0 0 rgba(0,0,0,0);
+    text-shadow:none;
+  }
+  50%{
+    border-color:color-mix(in srgb, var(--mint) 55%, transparent);
+    box-shadow:0 0 12px color-mix(in srgb, var(--mint) 30%, transparent),
+               inset 0 0 8px color-mix(in srgb, var(--mint) 12%, transparent);
+    text-shadow:0 0 8px color-mix(in srgb, var(--mint) 55%, transparent);
+  }
+}
+@keyframes khux-badge-dot-neon{
+  0%, 100%{ opacity:.55; box-shadow:0 0 0 rgba(0,0,0,0); }
+  50%{ opacity:1; box-shadow:0 0 8px var(--mint), 0 0 14px color-mix(in srgb, var(--mint) 60%, transparent); }
+}
+/* 모션 최소화를 선호하는 사용자에게는 깜빡임을 끄고 은은한 글로우만 유지 */
+@media (prefers-reduced-motion: reduce){
+  .khux-landing .badge,
+  .khux-landing .badge::before{ animation:none; }
+  .khux-landing .badge{ border-color:color-mix(in srgb, var(--mint) 40%, transparent); }
 }
 .khux-landing .hero h1{
   font-size:56px;
