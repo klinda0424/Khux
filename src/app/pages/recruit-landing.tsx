@@ -372,7 +372,7 @@ export function RecruitLanding() {
           <div>
             <details open>
               <summary>전공 무관하게 지원할 수 있나요?</summary>
-              <p>네. 실제로 4기 멤버 대부분이 서로 다른 전공입니다. 대신 지원 분야에 대한 관심과, 프로젝트를 끝까지 만들어보려는 의지를 봅니다.</p>
+              <p>네. 실제로 3기 멤버 대부분이 서로 다른 전공입니다. 대신 지원 분야에 대한 관심과, 프로젝트를 끝까지 만들어보려는 의지를 봅니다.</p>
             </details>
             <details>
               <summary>활동은 온라인인가요, 오프라인인가요?</summary>
