@@ -235,7 +235,7 @@ export function Recruit() {
                 {/* Long-form Questions */}
                 {visibleQuestions.map((q) => (
                   <div key={q.id}>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium mb-2 whitespace-pre-wrap">
                       {q.label}{q.required ? " *" : ""}
                     </label>
                     {q.type === "textarea" ? (

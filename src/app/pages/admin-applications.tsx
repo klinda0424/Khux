@@ -486,7 +486,7 @@ function DetailPanel({
             if (q.type === "url") {
               return (
                 <div key={q.id}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 whitespace-pre-wrap">
                     {q.label}
                   </p>
                   <a
@@ -505,7 +505,7 @@ function DetailPanel({
               return (
                 <div key={q.id} className="flex items-center gap-2 text-sm">
                   <span className="text-emerald-500 font-semibold">✓</span>
-                  <span className="text-muted-foreground">{q.label} 동의함</span>
+                  <span className="text-muted-foreground whitespace-pre-wrap">{q.label} 동의함</span>
                 </div>
               );
             }
@@ -580,7 +580,7 @@ function InfoCell({
 function QABlock({ q, a }: { q: string; a: string }) {
   return (
     <div>
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 whitespace-pre-wrap">
         {q}
       </p>
       <p className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap bg-muted/30 border border-border rounded-xl p-4">

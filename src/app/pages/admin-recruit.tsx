@@ -284,9 +284,9 @@ export function AdminRecruitTab() {
               className={`p-4 bg-card border rounded-xl space-y-3 cursor-pointer transition-opacity ${q.visible ? "border-border" : "border-border/40 opacity-60"}`}>
               <div className="flex items-start gap-2" onClick={(e) => e.stopPropagation()}>
                 {/* 라벨 */}
-                <input type="text" value={q.label}
+                <textarea value={q.label} rows={1}
                   onChange={(e) => updateQuestion(q.id, "label", e.target.value)}
-                  className="flex-1 text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5" />
+                  className="flex-1 text-sm font-medium bg-transparent border-b border-transparent hover:border-border focus:border-primary focus:outline-none pb-0.5 resize-y leading-snug" />
 
                 {/* 옵션 */}
                 <div className="flex items-center gap-3 shrink-0">
