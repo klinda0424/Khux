@@ -147,23 +147,38 @@ export function AdminRecruitTab() {
     <div className="space-y-8 pb-12">
 
       {/* 상단 액션 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-4">
         <Link
           to="/admin/applications"
-          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium"
+          className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 text-primary border border-primary/20 rounded-lg text-sm hover:bg-primary/20 transition-colors font-medium shrink-0"
         >
           <ExternalLink className="h-4 w-4" />
           지원서 검토
         </Link>
-        <div className="flex items-center gap-2.5 px-4 py-2.5 border border-border rounded-lg">
-          <div className="flex flex-col items-end">
-            <span className="text-sm font-medium">지원 폼 공개</span>
-            <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
+        <div className="px-4 py-3 border border-border rounded-lg w-full max-w-md">
+          <div className="flex items-center justify-end gap-2.5">
+            <div className="flex flex-col items-end">
+              <span className="text-sm font-medium">지원 폼 공개</span>
+              <p className="text-xs text-muted-foreground mt-0.5">비공개 시 "현재 모집 기간이 아닙니다" 표시</p>
+            </div>
+            <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
+            </button>
           </div>
-          <button type="button" onClick={() => setConfig({ ...config, isOpen: !config.isOpen })}
-            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${config.isOpen ? "bg-primary" : "bg-muted-foreground/30"}`}>
-            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${config.isOpen ? "translate-x-6" : "translate-x-1"}`} />
-          </button>
+          <div className="mt-3 pt-3 border-t border-border">
+            <label className="block text-sm font-medium mb-2">지원하기 버튼 연결 주소</label>
+            <input
+              type="url"
+              value={config.applyUrl ?? ""}
+              onChange={(e) => setConfig({ ...config, applyUrl: e.target.value })}
+              className={INPUT_CLASS}
+              placeholder="https://khux-recruit.vercel.app"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              메인 사이트의 Recruit 메뉴와 &lsquo;4기 지원하기&rsquo; 버튼이 이 주소로 이동합니다. 비워두면 기본 주소를 사용합니다.
+            </p>
+          </div>
         </div>
       </div>
 

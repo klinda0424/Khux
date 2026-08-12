@@ -1,3 +1,5 @@
+import { SITE_LINKS } from "../data/site-links";
+
 export interface RecruitBasicField {
   id: string;
   label: string;
@@ -36,6 +38,12 @@ export interface RecruitTeam {
 export interface RecruitConfig {
   generation: string;
   isOpen: boolean;
+  /**
+   * 메인 사이트(khux.vercel.app)의 Recruit 메뉴 / "4기 지원하기" 버튼이 향하는 주소.
+   * 리크루팅 전용 배포 주소가 바뀌어도 어드민에서 바로 갈아끼울 수 있도록 설정값으로 둔다.
+   * 비어 있으면 SITE_LINKS.recruitSite 를 사용한다.
+   */
+  applyUrl: string;
   description: string;
   applicationStart: string;
   applicationEnd: string;
@@ -54,6 +62,7 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
   // 배포판에서 recruit 페이지 콘텐츠 숨김 처리를 위해 false 로 설정.
   // 실제 모집 시작 시 true 로 되돌리면 됨 (원래 값: true).
   isOpen: false,
+  applyUrl: SITE_LINKS.recruitSite,
   description: "UX/UI에 관심 있는 경희대학교 학생이라면 누구나 지원 가능합니다.",
   applicationStart: "2026-03-14",
   applicationEnd: "2026-05-05",
@@ -105,6 +114,15 @@ export const DEFAULT_RECRUIT_CONFIG: RecruitConfig = {
     },
   ],
 };
+
+/**
+ * 지원하기 버튼이 향할 주소를 고른다.
+ * 어드민에서 설정한 값이 있으면 그걸 쓰고, 비어 있으면 기본 리크루팅 사이트로 보낸다.
+ */
+export function getApplyUrl(config?: { applyUrl?: string } | null): string {
+  const url = config?.applyUrl?.trim();
+  return url ? url : SITE_LINKS.recruitSite;
+}
 
 /** "2026-03-14" → "2026.03.14" */
 export function formatDate(iso: string): string {

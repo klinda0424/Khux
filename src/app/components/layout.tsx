@@ -2,7 +2,7 @@ import { Outlet, Link, useLocation } from "react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../utils/supabase-client";
-import { SITE_LINKS } from "../data/site-links";
+import { getApplyUrl } from "../types/recruit-config";
 import { PointerGlow } from "./pointer-glow";
 
 export function Layout() {
@@ -10,6 +10,8 @@ export function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [recruitOpen, setRecruitOpen] = useState(false);
+  // 지원하기 링크 주소는 어드민 설정값을 따른다 (미설정 시 기본 리크루팅 사이트).
+  const [applyUrl, setApplyUrl] = useState(getApplyUrl());
   // 기존 방문자의 라이트 모드 저장값과 무관하게 항상 다크로 시작하도록 강제.
   // 토글로 라이트를 선택해도 다음 방문 시 다시 다크로 시작함 (세션 내에서만 유지).
   const [theme, setTheme] = useState<"light" | "dark">("dark");
@@ -18,7 +20,10 @@ export function Layout() {
     apiFetch("/recruit-config")
       .then((r) => r.json())
       .then(({ config }) => {
-        if (config) setRecruitOpen(config.isOpen ?? false);
+        if (config) {
+          setRecruitOpen(config.isOpen ?? false);
+          setApplyUrl(getApplyUrl(config));
+        }
       })
       .catch(() => {});
   }, []);
@@ -140,7 +145,7 @@ export function Layout() {
               </Link>
               {recruitOpen && (
                 <a
-                  href={SITE_LINKS.recruitSite}
+                  href={applyUrl}
                   className="text-sm font-medium transition-colors text-text-sub hover:text-foreground"
                 >
                   Recruit
@@ -219,7 +224,7 @@ export function Layout() {
               </Link>
               {recruitOpen && (
                 <a
-                  href={SITE_LINKS.recruitSite}
+                  href={applyUrl}
                   onClick={() => setMobileMenuOpen(false)}
                   className="block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm text-text-sub hover:text-foreground hover:bg-surface2"
                 >
