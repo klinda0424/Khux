@@ -802,7 +802,7 @@ export function RecruitLanding() {
             </details>
             <details>
               <summary>주당 얼마나 시간을 써야 하나요?</summary>
-              <p>정기 세션 1시간 + 팀 작업 시간이 별도로 필요합니다. 프로젝트 막바지에는 그보다 더 쓰게 되는 주도 있어요.</p>
+              <p>정기 세션 1시간 + 팀 작업 시간이 별도로 필요합니다. 프로젝트 막바지에는 그보다 더 쓰게 되는 주도 있습니다.</p>
             </details>
             <details>
               <summary>디자인 툴을 다뤄본 적이 없어도 되나요?</summary>
