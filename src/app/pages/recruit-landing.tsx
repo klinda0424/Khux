@@ -1,5 +1,14 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
+import { SideRays } from "../components/side-rays/SideRays";
+import { SITE_LINKS } from "../data/site-links";
+
+// 히어로 하단 외부 채널 바로가기. 주소는 site-links.ts 한 곳에서만 관리한다.
+const HERO_LINKS = [
+  { label: "웹사이트 바로가기", href: SITE_LINKS.mainSite },
+  { label: "인스타 바로가기", href: SITE_LINKS.instagram },
+  { label: "링크드인 바로가기", href: SITE_LINKS.linkedin },
+].filter((l) => l.href);
 
 // 디자이너가 제공한 정적 랜딩(khux-apply-landing.html)을 최대한 그대로 이식.
 // 전역 스타일과 충돌하지 않도록 .khux-landing 스코프 아래에 원본 CSS를 유지.
@@ -23,38 +32,52 @@ const LANDING_STYLES = `
   overflow-x:hidden;
 }
 .khux-landing *{box-sizing:border-box; margin:0; padding:0;}
+/* 화면 좌상단에 고정으로 깔리는 앰비언트 글로우. 천천히 숨 쉬듯 밝기가 오간다. */
 .khux-landing::before{
   content:'';
   position:fixed;
-  top:-220px; left:-220px;
-  width:640px; height:640px;
-  background:radial-gradient(circle, rgba(45,212,166,0.11), transparent 70%);
+  top:-300px; left:-300px;
+  width:1000px; height:1000px;
+  background:radial-gradient(circle, rgba(45,212,166,0.26), rgba(45,212,166,0.08) 45%, transparent 72%);
   pointer-events:none;
   z-index:0;
+  animation:khuxAmbient 11s ease-in-out infinite;
+}
+/* 오른쪽 아래에서 올라오는 반대편 글로우 */
+.khux-landing::after{
+  content:'';
+  position:fixed;
+  right:-320px; bottom:-360px;
+  width:900px; height:900px;
+  background:radial-gradient(circle, rgba(45,212,166,0.16), transparent 70%);
+  pointer-events:none;
+  z-index:0;
+  animation:khuxAmbient 11s ease-in-out 3.5s infinite;
 }
 .khux-landing .mono{font-family:'IBM Plex Mono', monospace;}
-/* 콘텐츠가 화면 폭에 비례해 꽉 차도록 고정 max-width 대신 유동 패딩 사용 */
+/* 히어로는 화면 폭에 비례해 꽉 차도록 유동 패딩 사용 */
 .khux-landing{ --side-pad:clamp(24px, 6vw, 120px); }
-.khux-landing .wrap{max-width:none; margin:0 auto; padding:0 var(--side-pad);}
+.khux-landing .wrap{max-width:960px; margin:0 auto; padding:0 32px;}
 .khux-landing .wrap-wide{max-width:none; margin:0 auto; padding:0 var(--side-pad);}
 .khux-landing a{color:inherit; text-decoration:none;}
 .khux-landing em{font-style:normal; color:var(--mint);}
 
 .khux-landing .track{
   position:absolute;
-  left:var(--side-pad);
+  left:50%;
   top:0;
   bottom:0;
   width:1px;
   background:linear-gradient(to bottom, transparent, rgba(45,212,166,0.25) 8%, rgba(45,212,166,0.25) 92%, transparent);
+  transform:translateX(-480px);
   z-index:0;
 }
 @media (max-width:1240px){ .khux-landing .track{display:none;} }
 
 .khux-landing .root-mark{
   position:absolute;
-  left:var(--side-pad);
-  transform:translate(-50%,-50%);
+  left:50%;
+  transform:translate(-481px,-50%);
   width:9px; height:9px;
   border-radius:50%;
   background:var(--bg);
@@ -104,10 +127,10 @@ const LANDING_STYLES = `
   box-shadow:0 0 10px var(--mint);
 }
 .khux-landing .hero-inner{ position:relative; }
-.khux-landing .hero-copy{ position:relative; z-index:1; }
+.khux-landing .hero-copy{ position:relative; z-index:1; max-width:58%; }
 .khux-landing .hero-title{
-  /* 화면 폭에 따라 타이틀이 컨테이너를 꽉 채우도록 vw 기반 스케일 */
-  font-size:clamp(52px, min(12vw, 20vh), 260px);
+  /* 오른쪽 브랜드 마크와 겹치지 않도록 축소된 vw 기반 스케일 */
+  font-size:clamp(40px, min(7vw, 12vh), 150px);
   font-weight:800;
   letter-spacing:-0.03em;
   line-height:1.06;
@@ -119,11 +142,6 @@ const LANDING_STYLES = `
   font-weight:500;
   color:var(--text-1);
 }
-.khux-landing .hero-date{
-  margin-top:10px;
-  font-size:13px;
-  color:var(--text-3);
-}
 /* 브랜드 마크: 화면 오른쪽 절반을 차지하며 둥둥 떠 있는 배경 오브젝트 */
 .khux-landing .hero-visual{
   position:absolute;
@@ -133,6 +151,33 @@ const LANDING_STYLES = `
   width:clamp(340px, 48vw, 960px);
   z-index:0;
   pointer-events:none;
+  /* 마크가 큰 만큼 원근을 멀리 둬야 좌우 반동이 과하게 일그러지지 않는다 */
+  perspective:2400px;
+}
+.khux-landing .hero-mark{ position:relative; transform-style:preserve-3d; }
+/* 마크 모양대로 마스킹한 하이라이트. 반동과 같은 주기로 훑고 지나간다. */
+.khux-landing .hero-sheen{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  background:linear-gradient(112deg,
+    transparent 40%,
+    rgba(200,255,240,0.30) 46%,
+    rgba(255,255,255,0.95) 50%,
+    rgba(200,255,240,0.30) 54%,
+    transparent 60%);
+  background-size:280% 280%;
+  background-position:130% 0%;
+  -webkit-mask-image:url(/khux-mark.webp);
+  mask-image:url(/khux-mark.webp);
+  -webkit-mask-size:contain;
+  mask-size:contain;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  mix-blend-mode:screen;
 }
 .khux-landing .hero-visual::before{
   content:'';
@@ -148,6 +193,7 @@ const LANDING_STYLES = `
 }
 @media (max-width:860px){
   .khux-landing .hero-inner{ text-align:center; }
+  .khux-landing .hero-copy{ max-width:none; }
   .khux-landing .hero-title{ font-size:clamp(42px, 11.5vw, 64px); }
   .khux-landing .eyebrow-tag{ justify-content:center; }
   .khux-landing .hero-visual{
@@ -195,8 +241,8 @@ const LANDING_STYLES = `
   display:flex;
   justify-content:flex-start;
   gap:32px;
-  margin-top:56px;
-  padding-top:32px;
+  margin-top:40px;
+  padding-top:26px;
   border-top:1px solid var(--border);
   flex-wrap:wrap;
 }
@@ -212,6 +258,33 @@ const LANDING_STYLES = `
 }
 .khux-landing .meta-item .v{ font-size:15px; color:var(--text-1); font-weight:500; }
 .khux-landing .meta-item .v .mono{ color:var(--mint); }
+
+/* 히어로가 100vh를 채우는 레이아웃이라, 바로가기 줄은 첫 화면 안에 들어오도록 최대한 납작하게 둔다 */
+.khux-landing .hero-links{
+  display:flex;
+  justify-content:flex-start;
+  gap:10px;
+  margin-top:22px;
+  flex-wrap:wrap;
+  /* pill 안쪽 여백(22px)+테두리만큼 왼쪽으로 당겨, 글자 시작점을 위 meta-row와 맞춘다 */
+  margin-left:-23px;
+}
+@media (max-width:860px){ .khux-landing .hero-links{justify-content:center; margin-left:0;} }
+.khux-landing .link-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  border:1px solid rgba(45,212,166,0.55);
+  color:var(--text-1);
+  font-size:14px;
+  font-weight:600;
+  padding:12px 22px;
+  border-radius:999px;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
+}
+.khux-landing .link-pill .arrow{ color:var(--text-3); transition:color .15s ease, transform .15s ease; }
+.khux-landing .link-pill:hover{ border-color:var(--mint); background:var(--mint-dim); color:var(--text-1); }
+.khux-landing .link-pill:hover .arrow{ color:var(--mint); transform:translateX(2px); }
 
 /* SECTION HEADER */
 .khux-landing .sec-head{ margin-bottom:44px; }
@@ -390,9 +463,24 @@ const LANDING_STYLES = `
   0%,100%{ transform:translateY(0) rotate(0deg); }
   50%{ transform:translateY(-18px) rotate(-2.5deg); }
 }
-@keyframes khuxPulse{
-  0%,100%{ box-shadow:0 0 6px var(--mint); opacity:1; }
-  50%{ box-shadow:0 0 16px var(--mint); opacity:.65; }
+/* 마크 좌우 반동 + 그 리듬에 맞춰 지나가는 메탈릭 하이라이트 */
+@keyframes khuxTilt{
+  0%,100%{ transform:rotateY(-16deg); }
+  50%{ transform:rotateY(16deg); }
+}
+@keyframes khuxSweep{
+  0%{ background-position:130% 0%; opacity:0; }
+  12%{ opacity:1; }
+  46%{ opacity:1; }
+  62%{ background-position:-40% 0%; opacity:0; }
+  100%{ background-position:-40% 0%; opacity:0; }
+}
+/* 옆 도트: 글자와 같은 타임라인으로 부드럽게 밝기가 오간다 */
+@keyframes khuxNeonDot{
+  0%,100%{ opacity:.6; box-shadow:0 0 5px rgba(45,212,166,.45); }
+  12%,46%{ opacity:1; box-shadow:0 0 11px var(--mint), 0 0 22px rgba(45,212,166,.55); }
+  54%{ opacity:.72; box-shadow:0 0 6px rgba(45,212,166,.5); }
+  64%,88%{ opacity:1; box-shadow:0 0 11px var(--mint), 0 0 22px rgba(45,212,166,.55); }
 }
 @keyframes khuxGlow{
   0%,100%{ box-shadow:0 0 0 0 rgba(45,212,166,0.0); }
@@ -403,11 +491,32 @@ const LANDING_STYLES = `
 .khux-landing .hero-copy > *{ animation:khuxRise .7s ease both; }
 .khux-landing .hero-copy > :nth-child(2){ animation-delay:.08s; }
 .khux-landing .hero-copy > :nth-child(3){ animation-delay:.16s; }
-.khux-landing .hero-copy > :nth-child(4){ animation-delay:.22s; }
 .khux-landing .hero-cta{ animation:khuxRise .7s ease .3s both; }
 .khux-landing .meta-row{ animation:khuxRise .7s ease .4s both; }
-.khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 7s ease-in-out 1.2s infinite; }
-.khux-landing .eyebrow-tag::before{ animation:khuxPulse 2.4s ease-in-out infinite; }
+/* 마크 모션 전체를 1.35배속으로 (플로팅 7s→5.2s, 반동·스윕 5s→3.7s) */
+.khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 5.2s ease-in-out 1.2s infinite; }
+.khux-landing .hero-mark{ animation:khuxTilt 3.7s ease-in-out 1.4s infinite; }
+.khux-landing .hero-sheen{ animation:khuxSweep 3.7s ease-in-out 1.4s infinite; }
+
+/* 상단 태그: 켜졌다 꺼지는 점멸 대신, 밝기가 완만하게 오가는 네온.
+   꺼질 때도 완전히 죽지 않게 바닥값을 올리고 주기도 늘려 눈에 덜 걸리게 한다. */
+@keyframes khuxNeonText{
+  0%,100%{ color:rgba(45,212,166,.62); text-shadow:0 0 4px rgba(45,212,166,.22); }
+  12%,46%{ color:#eafff8; text-shadow:0 0 7px rgba(45,212,166,.85), 0 0 18px rgba(45,212,166,.45); }
+  54%{ color:rgba(45,212,166,.72); text-shadow:0 0 4px rgba(45,212,166,.3); }
+  64%,88%{ color:#eafff8; text-shadow:0 0 7px rgba(45,212,166,.85), 0 0 18px rgba(45,212,166,.45); }
+}
+.khux-landing .eyebrow-tag{
+  font-size:13px;
+  font-weight:600;
+  animation:khuxRise .7s ease both, khuxNeonText 3.6s ease-in-out .7s infinite;
+}
+.khux-landing .eyebrow-tag::before{ animation:khuxNeonDot 3.6s ease-in-out .7s infinite; }
+
+@keyframes khuxAmbient{
+  0%,100%{ opacity:.55; transform:scale(1); }
+  50%{ opacity:1; transform:scale(1.12); }
+}
 
 /* 스크롤 등장: 카드/리스트 스태거 */
 .khux-landing .why-card,
@@ -476,11 +585,18 @@ export function RecruitLanding() {
     <div className="khux-landing">
       <style>{LANDING_STYLES}</style>
 
+      {/* 페이지 전체 배경에 깔리는 레이 모션 (콘텐츠는 z-index 1 이상이라 가려지지 않음).
+          기본값은 거의 보이지 않아, 밝기·불투명도를 올려 배경 글로우가 드러나게 조정. */}
+      <SideRays intensity={2.8} opacity={0.85} saturation={1.2} spread={1.7} />
+
       <section className="hero">
         <div className="wrap-wide">
           <div className="hero-inner">
             <div className="hero-visual">
-              <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
+              <div className="hero-mark">
+                <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
+                <span className="hero-sheen" aria-hidden="true" />
+              </div>
             </div>
             <div className="hero-copy">
               <span className="eyebrow-tag mono">KHUX 4th Recruiting</span>
@@ -492,7 +608,6 @@ export function RecruitLanding() {
               <p className="hero-org">
                 경희대학교 UX/HCI 학회 <em>KHUX</em>
               </p>
-              <p className="hero-date mono">2026.08.12 – 2026.08.23 23:59</p>
             </div>
           </div>
           <div className="hero-cta">
@@ -520,6 +635,19 @@ export function RecruitLanding() {
                 <span className="mono">8.23 (일) 23:59</span>
               </div>
             </div>
+          </div>
+          <div className="hero-links">
+            {HERO_LINKS.map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-pill"
+              >
+                {label} <span className="arrow">→</span>
+              </a>
+            ))}
           </div>
         </div>
       </section>
