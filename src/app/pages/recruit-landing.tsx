@@ -138,6 +138,33 @@ const LANDING_STYLES = `
   width:clamp(340px, 48vw, 960px);
   z-index:0;
   pointer-events:none;
+  /* 마크가 큰 만큼 원근을 멀리 둬야 좌우 반동이 과하게 일그러지지 않는다 */
+  perspective:2400px;
+}
+.khux-landing .hero-mark{ position:relative; transform-style:preserve-3d; }
+/* 마크 모양대로 마스킹한 하이라이트. 반동과 같은 주기로 훑고 지나간다. */
+.khux-landing .hero-sheen{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  pointer-events:none;
+  background:linear-gradient(112deg,
+    transparent 40%,
+    rgba(200,255,240,0.30) 46%,
+    rgba(255,255,255,0.95) 50%,
+    rgba(200,255,240,0.30) 54%,
+    transparent 60%);
+  background-size:280% 280%;
+  background-position:130% 0%;
+  -webkit-mask-image:url(/khux-mark.webp);
+  mask-image:url(/khux-mark.webp);
+  -webkit-mask-size:contain;
+  mask-size:contain;
+  -webkit-mask-repeat:no-repeat;
+  mask-repeat:no-repeat;
+  -webkit-mask-position:center;
+  mask-position:center;
+  mix-blend-mode:screen;
 }
 .khux-landing .hero-visual::before{
   content:'';
@@ -421,6 +448,18 @@ const LANDING_STYLES = `
   0%,100%{ transform:translateY(0) rotate(0deg); }
   50%{ transform:translateY(-18px) rotate(-2.5deg); }
 }
+/* 마크 좌우 반동 + 그 리듬에 맞춰 지나가는 메탈릭 하이라이트 */
+@keyframes khuxTilt{
+  0%,100%{ transform:rotateY(-16deg); }
+  50%{ transform:rotateY(16deg); }
+}
+@keyframes khuxSweep{
+  0%{ background-position:130% 0%; opacity:0; }
+  12%{ opacity:1; }
+  46%{ opacity:1; }
+  62%{ background-position:-40% 0%; opacity:0; }
+  100%{ background-position:-40% 0%; opacity:0; }
+}
 /* 옆 도트: 글자 점멸과 동일한 타임라인으로 껐다 켜지는 네온 */
 @keyframes khuxNeonDot{
   0%{ opacity:.25; box-shadow:0 0 3px rgba(45,212,166,.3); }
@@ -442,7 +481,10 @@ const LANDING_STYLES = `
 .khux-landing .hero-copy > :nth-child(3){ animation-delay:.16s; }
 .khux-landing .hero-cta{ animation:khuxRise .7s ease .3s both; }
 .khux-landing .meta-row{ animation:khuxRise .7s ease .4s both; }
-.khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 7s ease-in-out 1.2s infinite; }
+/* 마크 모션 전체를 1.35배속으로 (플로팅 7s→5.2s, 반동·스윕 5s→3.7s) */
+.khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 5.2s ease-in-out 1.2s infinite; }
+.khux-landing .hero-mark{ animation:khuxTilt 3.7s ease-in-out 1.4s infinite; }
+.khux-landing .hero-sheen{ animation:khuxSweep 3.7s ease-in-out 1.4s infinite; }
 
 /* 상단 태그: 실제 네온사인처럼 짧게 두 번 튀었다가 켜지는 점멸.
    꺼질 때는 거의 사라지고 켜질 때는 흰빛까지 올려 대비를 크게 준다.
@@ -537,7 +579,10 @@ export function RecruitLanding() {
         <div className="wrap-wide">
           <div className="hero-inner">
             <div className="hero-visual">
-              <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
+              <div className="hero-mark">
+                <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
+                <span className="hero-sheen" aria-hidden="true" />
+              </div>
             </div>
             <div className="hero-copy">
               <span className="eyebrow-tag mono">KHUX 4th Recruiting</span>

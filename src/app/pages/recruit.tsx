@@ -416,6 +416,9 @@ export function Recruit() {
                               required={q.required && !form[q.id]}
                               className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
                             />
+                            <p className="text-xs text-muted-foreground/70 mt-2">
+                              PDF 업로드가 안 되면 구글 드라이브에 올린 뒤 &lsquo;링크로 제출&rsquo;에서 공유 링크를 첨부해주세요.
+                            </p>
                             {fileUploading[q.id] ? (
                               <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> 업로드 중...
