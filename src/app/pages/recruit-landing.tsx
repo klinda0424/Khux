@@ -475,15 +475,12 @@ const LANDING_STYLES = `
   62%{ background-position:-40% 0%; opacity:0; }
   100%{ background-position:-40% 0%; opacity:0; }
 }
-/* 옆 도트: 글자 점멸과 동일한 타임라인으로 껐다 켜지는 네온 */
+/* 옆 도트: 글자와 같은 타임라인으로 부드럽게 밝기가 오간다 */
 @keyframes khuxNeonDot{
-  0%{ opacity:.25; box-shadow:0 0 3px rgba(45,212,166,.3); }
-  6%{ opacity:1; box-shadow:0 0 10px var(--mint), 0 0 22px rgba(45,212,166,.7); }
-  10%{ opacity:.3; box-shadow:0 0 3px rgba(45,212,166,.3); }
-  16%,48%{ opacity:1; box-shadow:0 0 12px var(--mint), 0 0 26px rgba(45,212,166,.75); }
-  53%{ opacity:.22; box-shadow:0 0 2px rgba(45,212,166,.25); }
-  58%,88%{ opacity:1; box-shadow:0 0 14px var(--mint), 0 0 30px rgba(45,212,166,.8); }
-  94%,100%{ opacity:.25; box-shadow:0 0 3px rgba(45,212,166,.3); }
+  0%,100%{ opacity:.6; box-shadow:0 0 5px rgba(45,212,166,.45); }
+  12%,46%{ opacity:1; box-shadow:0 0 11px var(--mint), 0 0 22px rgba(45,212,166,.55); }
+  54%{ opacity:.72; box-shadow:0 0 6px rgba(45,212,166,.5); }
+  64%,88%{ opacity:1; box-shadow:0 0 11px var(--mint), 0 0 22px rgba(45,212,166,.55); }
 }
 @keyframes khuxGlow{
   0%,100%{ box-shadow:0 0 0 0 rgba(45,212,166,0.0); }
@@ -501,24 +498,20 @@ const LANDING_STYLES = `
 .khux-landing .hero-mark{ animation:khuxTilt 3.7s ease-in-out 1.4s infinite; }
 .khux-landing .hero-sheen{ animation:khuxSweep 3.7s ease-in-out 1.4s infinite; }
 
-/* 상단 태그: 실제 네온사인처럼 짧게 두 번 튀었다가 켜지는 점멸.
-   꺼질 때는 거의 사라지고 켜질 때는 흰빛까지 올려 대비를 크게 준다.
-   등장(khuxRise) 뒤에 이어서 시작하고, 옆 도트와 같은 주기를 쓴다. */
+/* 상단 태그: 켜졌다 꺼지는 점멸 대신, 밝기가 완만하게 오가는 네온.
+   꺼질 때도 완전히 죽지 않게 바닥값을 올리고 주기도 늘려 눈에 덜 걸리게 한다. */
 @keyframes khuxNeonText{
-  0%{ color:rgba(45,212,166,.28); text-shadow:none; }
-  6%{ color:#f2fffb; text-shadow:0 0 6px rgba(45,212,166,1), 0 0 16px rgba(45,212,166,.8), 0 0 34px rgba(45,212,166,.45); }
-  10%{ color:rgba(45,212,166,.32); text-shadow:0 0 2px rgba(45,212,166,.2); }
-  16%,48%{ color:#f2fffb; text-shadow:0 0 8px rgba(45,212,166,1), 0 0 20px rgba(45,212,166,.85), 0 0 42px rgba(45,212,166,.5); }
-  53%{ color:rgba(45,212,166,.24); text-shadow:none; }
-  58%,88%{ color:#f2fffb; text-shadow:0 0 9px rgba(45,212,166,1), 0 0 24px rgba(45,212,166,.9), 0 0 48px rgba(45,212,166,.55); }
-  94%,100%{ color:rgba(45,212,166,.28); text-shadow:none; }
+  0%,100%{ color:rgba(45,212,166,.62); text-shadow:0 0 4px rgba(45,212,166,.22); }
+  12%,46%{ color:#eafff8; text-shadow:0 0 7px rgba(45,212,166,.85), 0 0 18px rgba(45,212,166,.45); }
+  54%{ color:rgba(45,212,166,.72); text-shadow:0 0 4px rgba(45,212,166,.3); }
+  64%,88%{ color:#eafff8; text-shadow:0 0 7px rgba(45,212,166,.85), 0 0 18px rgba(45,212,166,.45); }
 }
 .khux-landing .eyebrow-tag{
   font-size:13px;
   font-weight:600;
-  animation:khuxRise .7s ease both, khuxNeonText 2.4s linear .7s infinite;
+  animation:khuxRise .7s ease both, khuxNeonText 3.6s ease-in-out .7s infinite;
 }
-.khux-landing .eyebrow-tag::before{ animation:khuxNeonDot 2.4s linear .7s infinite; }
+.khux-landing .eyebrow-tag::before{ animation:khuxNeonDot 3.6s ease-in-out .7s infinite; }
 
 @keyframes khuxAmbient{
   0%,100%{ opacity:.55; transform:scale(1); }
