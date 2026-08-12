@@ -274,13 +274,13 @@ const LANDING_STYLES = `
   display:inline-flex;
   align-items:center;
   gap:10px;
-  border:1px solid rgba(45,212,166,0.4);
+  border:1px solid rgba(45,212,166,0.55);
   color:var(--text-1);
   font-size:14px;
   font-weight:600;
   padding:12px 22px;
   border-radius:999px;
-  transition:background .15s ease, color .15s ease;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
 }
 .khux-landing .link-pill .arrow{ color:var(--text-3); transition:color .15s ease, transform .15s ease; }
 .khux-landing .link-pill:hover{ border-color:var(--mint); background:var(--mint-dim); color:var(--text-1); }
@@ -520,23 +520,10 @@ const LANDING_STYLES = `
 }
 .khux-landing .eyebrow-tag::before{ animation:khuxNeonDot 2.4s linear .7s infinite; }
 
-/* 바로가기 pill: 태그보다 훨씬 느리게 차오르는 스트로크 네온 */
-@keyframes khuxPillGlow{
-  0%,100%{
-    border-color:rgba(45,212,166,0.28);
-    box-shadow:0 0 0 rgba(45,212,166,0), inset 0 0 0 rgba(45,212,166,0);
-  }
-  50%{
-    border-color:rgba(45,212,166,0.95);
-    box-shadow:0 0 14px rgba(45,212,166,0.45), 0 0 30px rgba(45,212,166,0.16),
-               inset 0 0 12px rgba(45,212,166,0.18);
-  }
-}
 @keyframes khuxAmbient{
   0%,100%{ opacity:.55; transform:scale(1); }
   50%{ opacity:1; transform:scale(1.12); }
 }
-.khux-landing .link-pill{ animation:khuxPillGlow 6.5s ease-in-out 1s infinite; }
 
 /* 스크롤 등장: 카드/리스트 스태거 */
 .khux-landing .why-card,
