@@ -105,10 +105,10 @@ const LANDING_STYLES = `
   box-shadow:0 0 10px var(--mint);
 }
 .khux-landing .hero-inner{ position:relative; }
-.khux-landing .hero-copy{ position:relative; z-index:1; }
+.khux-landing .hero-copy{ position:relative; z-index:1; max-width:58%; }
 .khux-landing .hero-title{
-  /* 화면 폭에 따라 타이틀이 컨테이너를 꽉 채우도록 vw 기반 스케일 */
-  font-size:clamp(52px, min(12vw, 20vh), 260px);
+  /* 오른쪽 브랜드 마크와 겹치지 않도록 축소된 vw 기반 스케일 */
+  font-size:clamp(40px, min(7vw, 12vh), 150px);
   font-weight:800;
   letter-spacing:-0.03em;
   line-height:1.06;
@@ -149,6 +149,7 @@ const LANDING_STYLES = `
 }
 @media (max-width:860px){
   .khux-landing .hero-inner{ text-align:center; }
+  .khux-landing .hero-copy{ max-width:none; }
   .khux-landing .hero-title{ font-size:clamp(42px, 11.5vw, 64px); }
   .khux-landing .eyebrow-tag{ justify-content:center; }
   .khux-landing .hero-visual{
