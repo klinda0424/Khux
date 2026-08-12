@@ -33,27 +33,28 @@ const LANDING_STYLES = `
   z-index:0;
 }
 .khux-landing .mono{font-family:'IBM Plex Mono', monospace;}
-.khux-landing .wrap{max-width:960px; margin:0 auto; padding:0 32px;}
-.khux-landing .wrap-wide{max-width:1180px; margin:0 auto; padding:0 32px;}
+/* 콘텐츠가 화면 폭에 비례해 꽉 차도록 고정 max-width 대신 유동 패딩 사용 */
+.khux-landing{ --side-pad:clamp(24px, 6vw, 120px); }
+.khux-landing .wrap{max-width:none; margin:0 auto; padding:0 var(--side-pad);}
+.khux-landing .wrap-wide{max-width:none; margin:0 auto; padding:0 var(--side-pad);}
 .khux-landing a{color:inherit; text-decoration:none;}
 .khux-landing em{font-style:normal; color:var(--mint);}
 
 .khux-landing .track{
   position:absolute;
-  left:50%;
+  left:var(--side-pad);
   top:0;
   bottom:0;
   width:1px;
   background:linear-gradient(to bottom, transparent, rgba(45,212,166,0.25) 8%, rgba(45,212,166,0.25) 92%, transparent);
-  transform:translateX(-480px);
   z-index:0;
 }
 @media (max-width:1240px){ .khux-landing .track{display:none;} }
 
 .khux-landing .root-mark{
   position:absolute;
-  left:50%;
-  transform:translate(-481px,-50%);
+  left:var(--side-pad);
+  transform:translate(-50%,-50%);
   width:9px; height:9px;
   border-radius:50%;
   background:var(--bg);
@@ -79,9 +80,15 @@ const LANDING_STYLES = `
 
 /* HERO */
 .khux-landing .hero{
-  padding:96px 0 64px;
+  /* 첫 화면이 브라우저 높이를 꽉 채우고 콘텐츠는 세로 중앙 정렬 */
+  min-height:100vh;
+  min-height:100svh;
+  display:flex;
+  align-items:center;
+  padding:32px 0;
   overflow:hidden;
 }
+.khux-landing .hero .wrap-wide{ width:100%; }
 .khux-landing .eyebrow-tag{
   display:inline-flex; align-items:center; gap:8px;
   font-size:12px;
@@ -96,22 +103,19 @@ const LANDING_STYLES = `
   background:var(--mint);
   box-shadow:0 0 10px var(--mint);
 }
-.khux-landing .hero-grid{
-  display:grid;
-  grid-template-columns:1.05fr 0.95fr;
-  gap:24px;
-  align-items:center;
-}
+.khux-landing .hero-inner{ position:relative; }
+.khux-landing .hero-copy{ position:relative; z-index:1; }
 .khux-landing .hero-title{
-  font-size:58px;
+  /* 화면 폭에 따라 타이틀이 컨테이너를 꽉 채우도록 vw 기반 스케일 */
+  font-size:clamp(52px, min(12vw, 20vh), 260px);
   font-weight:800;
-  letter-spacing:-0.02em;
-  line-height:1.18;
+  letter-spacing:-0.03em;
+  line-height:1.06;
   color:var(--text-1);
 }
 .khux-landing .hero-org{
-  margin-top:22px;
-  font-size:17px;
+  margin-top:26px;
+  font-size:clamp(15px, 1.4vw, 19px);
   font-weight:500;
   color:var(--text-1);
 }
@@ -120,32 +124,38 @@ const LANDING_STYLES = `
   font-size:13px;
   color:var(--text-3);
 }
+/* 브랜드 마크: 타이틀 뒤에서 둥둥 떠 있는 배경 오브젝트 */
 .khux-landing .hero-visual{
-  position:relative;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  min-height:280px;
+  position:absolute;
+  right:-3%;
+  top:-4%;
+  width:clamp(280px, 36vw, 560px);
+  z-index:0;
+  pointer-events:none;
 }
 .khux-landing .hero-visual::before{
   content:'';
   position:absolute;
-  inset:-10%;
+  inset:-14%;
   background:radial-gradient(circle, rgba(45,212,166,0.22), transparent 65%);
   filter:blur(30px);
 }
 .khux-landing .hero-visual img{
   position:relative;
   width:100%;
-  max-width:440px;
   filter:drop-shadow(0 30px 60px rgba(45,212,166,0.2));
 }
 @media (max-width:860px){
-  .khux-landing .hero-grid{grid-template-columns:1fr; text-align:center;}
-  .khux-landing .hero-title{font-size:42px;}
-  .khux-landing .eyebrow-tag{justify-content:center;}
-  .khux-landing .hero-visual{order:-1; min-height:200px;}
-  .khux-landing .hero-visual img{max-width:260px;}
+  .khux-landing .hero-inner{ text-align:center; }
+  .khux-landing .hero-title{ font-size:clamp(42px, 11.5vw, 64px); }
+  .khux-landing .eyebrow-tag{ justify-content:center; }
+  .khux-landing .hero-visual{
+    position:relative;
+    right:auto; top:auto;
+    margin:0 auto 16px;
+    width:min(52vw, 220px);
+  }
+  .khux-landing .meta-row{ margin-top:40px; padding-top:24px; }
 }
 
 .khux-landing .hero-cta{
@@ -376,8 +386,8 @@ const LANDING_STYLES = `
   to{ opacity:1; transform:translateY(0); }
 }
 @keyframes khuxFloat{
-  0%,100%{ transform:translateY(0); }
-  50%{ transform:translateY(-10px); }
+  0%,100%{ transform:translateY(0) rotate(0deg); }
+  50%{ transform:translateY(-18px) rotate(-2.5deg); }
 }
 @keyframes khuxPulse{
   0%,100%{ box-shadow:0 0 6px var(--mint); opacity:1; }
@@ -467,7 +477,10 @@ export function RecruitLanding() {
 
       <section className="hero">
         <div className="wrap-wide">
-          <div className="hero-grid">
+          <div className="hero-inner">
+            <div className="hero-visual">
+              <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
+            </div>
             <div className="hero-copy">
               <span className="eyebrow-tag mono">KHUX 4th Recruiting</span>
               <h1 className="hero-title">
@@ -479,9 +492,6 @@ export function RecruitLanding() {
                 경희대학교 UX/HCI 학회 <em>KHUX</em>
               </p>
               <p className="hero-date mono">2026.08.12 – 2026.08.23 23:59</p>
-            </div>
-            <div className="hero-visual">
-              <img src="/khux-mark.webp" alt="KHUX 브랜드 마크" width={628} height={628} />
             </div>
           </div>
           <div className="hero-cta">
