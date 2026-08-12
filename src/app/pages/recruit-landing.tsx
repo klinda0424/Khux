@@ -129,11 +129,6 @@ const LANDING_STYLES = `
   font-weight:500;
   color:var(--text-1);
 }
-.khux-landing .hero-date{
-  margin-top:10px;
-  font-size:13px;
-  color:var(--text-3);
-}
 /* 브랜드 마크: 화면 오른쪽 절반을 차지하며 둥둥 떠 있는 배경 오브젝트 */
 .khux-landing .hero-visual{
   position:absolute;
@@ -228,20 +223,20 @@ const LANDING_STYLES = `
 .khux-landing .hero-links{
   display:flex;
   justify-content:flex-start;
-  gap:8px;
-  margin-top:18px;
+  gap:10px;
+  margin-top:22px;
   flex-wrap:wrap;
 }
 @media (max-width:860px){ .khux-landing .hero-links{justify-content:center;} }
 .khux-landing .link-pill{
   display:inline-flex;
   align-items:center;
-  gap:8px;
-  border:1px solid var(--border);
-  color:var(--text-2);
-  font-size:12px;
+  gap:10px;
+  border:1px solid var(--border-strong);
+  color:var(--text-1);
+  font-size:15px;
   font-weight:600;
-  padding:8px 15px;
+  padding:13px 24px;
   border-radius:999px;
   transition:border-color .15s ease, background .15s ease, color .15s ease;
 }
@@ -426,9 +421,15 @@ const LANDING_STYLES = `
   0%,100%{ transform:translateY(0) rotate(0deg); }
   50%{ transform:translateY(-18px) rotate(-2.5deg); }
 }
-@keyframes khuxPulse{
-  0%,100%{ box-shadow:0 0 6px var(--mint); opacity:1; }
-  50%{ box-shadow:0 0 16px var(--mint); opacity:.65; }
+/* 옆 도트: 글자 점멸과 동일한 타임라인으로 껐다 켜지는 네온 */
+@keyframes khuxNeonDot{
+  0%{ opacity:.25; box-shadow:0 0 3px rgba(45,212,166,.3); }
+  6%{ opacity:1; box-shadow:0 0 10px var(--mint), 0 0 22px rgba(45,212,166,.7); }
+  10%{ opacity:.3; box-shadow:0 0 3px rgba(45,212,166,.3); }
+  16%,48%{ opacity:1; box-shadow:0 0 12px var(--mint), 0 0 26px rgba(45,212,166,.75); }
+  53%{ opacity:.22; box-shadow:0 0 2px rgba(45,212,166,.25); }
+  58%,88%{ opacity:1; box-shadow:0 0 14px var(--mint), 0 0 30px rgba(45,212,166,.8); }
+  94%,100%{ opacity:.25; box-shadow:0 0 3px rgba(45,212,166,.3); }
 }
 @keyframes khuxGlow{
   0%,100%{ box-shadow:0 0 0 0 rgba(45,212,166,0.0); }
@@ -439,20 +440,28 @@ const LANDING_STYLES = `
 .khux-landing .hero-copy > *{ animation:khuxRise .7s ease both; }
 .khux-landing .hero-copy > :nth-child(2){ animation-delay:.08s; }
 .khux-landing .hero-copy > :nth-child(3){ animation-delay:.16s; }
-.khux-landing .hero-copy > :nth-child(4){ animation-delay:.22s; }
 .khux-landing .hero-cta{ animation:khuxRise .7s ease .3s both; }
 .khux-landing .meta-row{ animation:khuxRise .7s ease .4s both; }
 .khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 7s ease-in-out 1.2s infinite; }
-.khux-landing .eyebrow-tag::before{ animation:khuxPulse 2.4s ease-in-out infinite; }
 
-/* 상단 태그: 천천히 숨 쉬는 네온 점멸. 등장(khuxRise) 뒤에 이어서 시작하고,
-   옆의 도트 펄스와 주기를 맞춰 따로 노는 느낌이 없게 함. */
+/* 상단 태그: 실제 네온사인처럼 짧게 두 번 튀었다가 켜지는 점멸.
+   꺼질 때는 거의 사라지고 켜질 때는 흰빛까지 올려 대비를 크게 준다.
+   등장(khuxRise) 뒤에 이어서 시작하고, 옆 도트와 같은 주기를 쓴다. */
 @keyframes khuxNeonText{
-  0%,100%{ color:rgba(45,212,166,0.55); text-shadow:0 0 4px rgba(45,212,166,0.18); }
-  50%{ color:rgba(45,212,166,1); text-shadow:0 0 8px rgba(45,212,166,0.7), 0 0 18px rgba(45,212,166,0.4); }
+  0%{ color:rgba(45,212,166,.28); text-shadow:none; }
+  6%{ color:#f2fffb; text-shadow:0 0 6px rgba(45,212,166,1), 0 0 16px rgba(45,212,166,.8), 0 0 34px rgba(45,212,166,.45); }
+  10%{ color:rgba(45,212,166,.32); text-shadow:0 0 2px rgba(45,212,166,.2); }
+  16%,48%{ color:#f2fffb; text-shadow:0 0 8px rgba(45,212,166,1), 0 0 20px rgba(45,212,166,.85), 0 0 42px rgba(45,212,166,.5); }
+  53%{ color:rgba(45,212,166,.24); text-shadow:none; }
+  58%,88%{ color:#f2fffb; text-shadow:0 0 9px rgba(45,212,166,1), 0 0 24px rgba(45,212,166,.9), 0 0 48px rgba(45,212,166,.55); }
+  94%,100%{ color:rgba(45,212,166,.28); text-shadow:none; }
 }
-.khux-landing .eyebrow-tag{ animation:khuxRise .7s ease both, khuxNeonText 3.6s ease-in-out .7s infinite; }
-.khux-landing .eyebrow-tag::before{ animation-duration:3.6s; }
+.khux-landing .eyebrow-tag{
+  font-size:13px;
+  font-weight:600;
+  animation:khuxRise .7s ease both, khuxNeonText 1.9s linear .7s infinite;
+}
+.khux-landing .eyebrow-tag::before{ animation:khuxNeonDot 1.9s linear .7s infinite; }
 
 /* 스크롤 등장: 카드/리스트 스태거 */
 .khux-landing .why-card,
@@ -540,7 +549,6 @@ export function RecruitLanding() {
               <p className="hero-org">
                 경희대학교 UX/HCI 학회 <em>KHUX</em>
               </p>
-              <p className="hero-date mono">2026.08.12 – 2026.08.23 23:59</p>
             </div>
           </div>
           <div className="hero-cta">
