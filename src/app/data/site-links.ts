@@ -6,6 +6,6 @@ export const SITE_LINKS = {
   /** 리크루팅 전용 사이트 (4기 지원) */
   recruitSite: "https://khux-recruit.vercel.app",
   instagram: "https://www.instagram.com/khux.khux/",
-  linkedin: "",  // 예: "https://www.linkedin.com/company/회사명" — 주소 확정되면 채우기
+  linkedin: "https://www.linkedin.com/company/%EA%B2%BD%ED%9D%AC%EB%8C%80%ED%95%99%EA%B5%90-ux-hci-%ED%95%99%ED%9A%8C-khux/",
   email: "khux2025@gmail.com",
 };
