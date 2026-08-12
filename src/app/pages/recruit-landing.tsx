@@ -1,5 +1,14 @@
 import { useEffect } from "react";
 import { Link } from "react-router";
+import { SideRays } from "../components/side-rays/SideRays";
+import { SITE_LINKS } from "../data/site-links";
+
+// 히어로 하단 외부 채널 바로가기. 주소는 site-links.ts 한 곳에서만 관리한다.
+const HERO_LINKS = [
+  { label: "웹사이트 바로가기", href: SITE_LINKS.mainSite },
+  { label: "인스타 바로가기", href: SITE_LINKS.instagram },
+  { label: "링크드인 바로가기", href: SITE_LINKS.linkedin },
+].filter((l) => l.href);
 
 // 디자이너가 제공한 정적 랜딩(khux-apply-landing.html)을 최대한 그대로 이식.
 // 전역 스타일과 충돌하지 않도록 .khux-landing 스코프 아래에 원본 CSS를 유지.
@@ -197,8 +206,8 @@ const LANDING_STYLES = `
   display:flex;
   justify-content:flex-start;
   gap:32px;
-  margin-top:56px;
-  padding-top:32px;
+  margin-top:40px;
+  padding-top:26px;
   border-top:1px solid var(--border);
   flex-wrap:wrap;
 }
@@ -214,6 +223,31 @@ const LANDING_STYLES = `
 }
 .khux-landing .meta-item .v{ font-size:15px; color:var(--text-1); font-weight:500; }
 .khux-landing .meta-item .v .mono{ color:var(--mint); }
+
+/* 히어로가 100vh를 채우는 레이아웃이라, 바로가기 줄은 첫 화면 안에 들어오도록 최대한 납작하게 둔다 */
+.khux-landing .hero-links{
+  display:flex;
+  justify-content:flex-start;
+  gap:8px;
+  margin-top:18px;
+  flex-wrap:wrap;
+}
+@media (max-width:860px){ .khux-landing .hero-links{justify-content:center;} }
+.khux-landing .link-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:1px solid var(--border);
+  color:var(--text-2);
+  font-size:12px;
+  font-weight:600;
+  padding:8px 15px;
+  border-radius:999px;
+  transition:border-color .15s ease, background .15s ease, color .15s ease;
+}
+.khux-landing .link-pill .arrow{ color:var(--text-3); transition:color .15s ease, transform .15s ease; }
+.khux-landing .link-pill:hover{ border-color:var(--mint); background:var(--mint-dim); color:var(--text-1); }
+.khux-landing .link-pill:hover .arrow{ color:var(--mint); transform:translateX(2px); }
 
 /* SECTION HEADER */
 .khux-landing .sec-head{ margin-bottom:44px; }
@@ -411,6 +445,15 @@ const LANDING_STYLES = `
 .khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 7s ease-in-out 1.2s infinite; }
 .khux-landing .eyebrow-tag::before{ animation:khuxPulse 2.4s ease-in-out infinite; }
 
+/* 상단 태그: 천천히 숨 쉬는 네온 점멸. 등장(khuxRise) 뒤에 이어서 시작하고,
+   옆의 도트 펄스와 주기를 맞춰 따로 노는 느낌이 없게 함. */
+@keyframes khuxNeonText{
+  0%,100%{ color:rgba(45,212,166,0.55); text-shadow:0 0 4px rgba(45,212,166,0.18); }
+  50%{ color:rgba(45,212,166,1); text-shadow:0 0 8px rgba(45,212,166,0.7), 0 0 18px rgba(45,212,166,0.4); }
+}
+.khux-landing .eyebrow-tag{ animation:khuxRise .7s ease both, khuxNeonText 3.6s ease-in-out .7s infinite; }
+.khux-landing .eyebrow-tag::before{ animation-duration:3.6s; }
+
 /* 스크롤 등장: 카드/리스트 스태거 */
 .khux-landing .why-card,
 .khux-landing .track-item,
@@ -478,6 +521,9 @@ export function RecruitLanding() {
     <div className="khux-landing">
       <style>{LANDING_STYLES}</style>
 
+      {/* 페이지 전체 배경에 깔리는 은은한 레이 모션 (콘텐츠는 z-index 1 이상이라 가려지지 않음) */}
+      <SideRays />
+
       <section className="hero">
         <div className="wrap-wide">
           <div className="hero-inner">
@@ -522,6 +568,19 @@ export function RecruitLanding() {
                 <span className="mono">8.23 (일) 23:59</span>
               </div>
             </div>
+          </div>
+          <div className="hero-links">
+            {HERO_LINKS.map(({ label, href }) => (
+              <a
+                key={label}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="link-pill"
+              >
+                {label} <span className="arrow">→</span>
+              </a>
+            ))}
           </div>
         </div>
       </section>
