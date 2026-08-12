@@ -125,12 +125,13 @@ const LANDING_STYLES = `
   font-size:13px;
   color:var(--text-3);
 }
-/* 브랜드 마크: 타이틀 뒤에서 둥둥 떠 있는 배경 오브젝트 */
+/* 브랜드 마크: 화면 오른쪽 절반을 차지하며 둥둥 떠 있는 배경 오브젝트 */
 .khux-landing .hero-visual{
   position:absolute;
-  right:-3%;
-  top:-4%;
-  width:clamp(280px, 36vw, 560px);
+  right:-6%;
+  top:50%;
+  transform:translateY(-54%);
+  width:clamp(340px, 48vw, 960px);
   z-index:0;
   pointer-events:none;
 }
