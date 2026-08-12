@@ -1,6 +1,14 @@
 import { Outlet, Link } from "react-router";
 import { useEffect } from "react";
+import { Globe, Instagram, Linkedin } from "lucide-react";
+import { SITE_LINKS } from "../data/site-links";
 import { PointerGlow } from "./pointer-glow";
+
+const FOOTER_LINKS = [
+  { href: SITE_LINKS.mainSite,  label: "KHUX 홈페이지", Icon: Globe },
+  { href: SITE_LINKS.instagram, label: "Instagram",     Icon: Instagram },
+  { href: SITE_LINKS.linkedin,  label: "LinkedIn",      Icon: Linkedin },
+].filter((l) => l.href);
 
 export function RecruitOnlyLayout() {
   useEffect(() => {
@@ -22,12 +30,26 @@ export function RecruitOnlyLayout() {
             <p className="text-sm text-muted-foreground">
               &copy; {new Date().getFullYear()} KHUX — Kyung Hee University UX Lab
             </p>
-            <Link
-              to="/admin/login"
-              className="text-xs text-muted-foreground/30 hover:text-muted-foreground transition-colors"
-            >
-              Admin
-            </Link>
+            <div className="flex items-center gap-5">
+              {FOOTER_LINKS.map(({ href, label, Icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </a>
+              ))}
+              <Link
+                to="/admin/login"
+                className="text-xs text-muted-foreground/30 hover:text-muted-foreground transition-colors"
+              >
+                Admin
+              </Link>
+            </div>
           </div>
         </div>
       </footer>

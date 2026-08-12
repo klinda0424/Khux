@@ -16,6 +16,7 @@ import { ImageWithFallback } from "../components/figma/ImageWithFallback";
 import { FadeInSection } from "../components/fade-in-section";
 import { AccordionGallery } from "../components/accordion-gallery/AccordionGallery";
 import { GALLERY_ITEMS } from "../data/gallery-items";
+import { SITE_LINKS } from "../data/site-links";
 import { LandingIntro } from "../components/landing-intro";
 
 export function Home() {
@@ -592,12 +593,12 @@ export function Home() {
                 <p className="text-base text-text-sub max-w-2xl mx-auto leading-relaxed mb-10">
                   UX/UI 디자인에 관심있는 모든 분들을 환영합니다.<br />함께 배우고, 연구하고, 성장하는 커뮤니티에 참여하세요.
                 </p>
-                <Link
-                  to="/recruit"
+                <a
+                  href={SITE_LINKS.recruitSite}
                   className="inline-flex items-center justify-center px-8 py-3.5 bg-primary text-primary-foreground rounded-full hover:bg-primary/90 transition-colors text-sm font-bold"
                 >
                   4기 지원하기 <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </div>
             </FadeInSection>
           </section>

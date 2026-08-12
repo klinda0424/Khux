@@ -59,6 +59,25 @@ const AVATAR_BG = [
   "bg-cyan-600",   "bg-teal-600", "bg-emerald-600",
 ];
 
+// "지원 팀(team)" 필드가 숨김 처리된 뒤로는 "희망부서 - 1지망" 선택값이 사실상의 지원 팀이다.
+// excludeGroup으로 묶인 select 항목(1지망/2지망/…) 중 첫 번째 항목을 1지망으로 본다.
+function findFirstChoiceField(
+  basicFields: RecruitBasicField[],
+  questions: RecruitQuestion[],
+): { id: string; options?: string[] } | undefined {
+  return [...basicFields, ...questions].find(
+    (f) => f.type === "select" && !!f.excludeGroup,
+  );
+}
+
+// team 값이 있으면 그대로, 없거나 더미값("N/A")이면 1지망 답변으로 분류
+function effectiveTeam(app: Application, firstChoiceId: string | undefined): string {
+  const team = String(app.team ?? "");
+  if (team && team !== "N/A") return team;
+  if (!firstChoiceId) return "";
+  return String(app[firstChoiceId] ?? "");
+}
+
 function avatarBg(index: number) {
   return AVATAR_BG[index % AVATAR_BG.length];
 }
@@ -182,9 +201,18 @@ export function AdminApplications() {
   };
 
   // ── Filtered list ───────────────────────────────────────────────────────────
+  const firstChoice = findFirstChoiceField(basicFields, questions);
+  const teamOf = (a: Application) => effectiveTeam(a, firstChoice?.id);
+
+  // 필터 버튼: 1지망 항목의 선택지 + 실제 지원서에 존재하는 값
+  const teamOptions = Array.from(new Set([
+    ...(firstChoice?.options ?? []),
+    ...applications.map(teamOf).filter(Boolean),
+  ]));
+
   const filtered = applications.filter(a => {
     if (statusFilter !== "all" && a.status !== statusFilter) return false;
-    if (teamFilter !== "all" && a.team !== teamFilter) return false;
+    if (teamFilter !== "all" && teamOf(a) !== teamFilter) return false;
     if (search && !a.name.includes(search) && !a.major.includes(search)) return false;
     return true;
   });
@@ -259,9 +287,9 @@ export function AdminApplications() {
           />
         </div>
 
-        {/* Team filter */}
+        {/* Team filter (1지망 기준) */}
         <div className="flex items-center gap-1">
-          {["all", "Leaders", "Education", "Operations", "Growth"].map(t => (
+          {["all", ...teamOptions].map(t => (
             <button
               key={t}
               onClick={() => setTeamFilter(t)}
@@ -297,6 +325,7 @@ export function AdminApplications() {
                 const { ymd, hm } = formatDate(app.submittedAt);
                 const meta = STATUS_META[app.status];
                 const isSelected = selected?.id === app.id;
+                const team = teamOf(app);
                 return (
                   <li key={app.id}>
                     <button
@@ -322,9 +351,11 @@ export function AdminApplications() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <span className="font-semibold text-sm truncate">{app.name}</span>
-                            <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium flex-shrink-0 ${TEAM_COLORS[app.team] ?? "bg-muted text-muted-foreground"}`}>
-                              {app.team}
-                            </span>
+                            {team && (
+                              <span className={`text-xs px-1.5 py-0.5 rounded-md font-medium flex-shrink-0 ${TEAM_COLORS[team] ?? "bg-muted text-muted-foreground"}`}>
+                                {team}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">{app.major}</p>
                           <p className="text-xs text-muted-foreground/50 mt-1">{ymd} {hm}</p>
@@ -368,6 +399,7 @@ export function AdminApplications() {
           {selected ? (
             <DetailPanel
               app={applications.find(a => a.id === selected.id) ?? selected}
+              team={teamOf(applications.find(a => a.id === selected.id) ?? selected)}
               basicFields={basicFields}
               questions={questions}
               onStatusChange={updateStatus}
@@ -429,6 +461,7 @@ function ActionBtn({
 
 function DetailPanel({
   app,
+  team,
   basicFields,
   questions,
   onStatusChange,
@@ -436,6 +469,7 @@ function DetailPanel({
   updating,
 }: {
   app: Application;
+  team: string;
   basicFields: RecruitBasicField[];
   questions: RecruitQuestion[];
   onStatusChange: (id: string, status: Status) => void;
@@ -472,9 +506,11 @@ function DetailPanel({
               <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${meta.bg} ${meta.color}`}>
                 {meta.symbol} {meta.label}
               </span>
-              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${TEAM_COLORS[app.team] ?? "bg-muted text-muted-foreground"}`}>
-                {app.team}
-              </span>
+              {team && (
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${TEAM_COLORS[team] ?? "bg-muted text-muted-foreground"}`}>
+                  {team}
+                </span>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
               제출일시: {ymd} {hm}

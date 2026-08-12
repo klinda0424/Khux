@@ -4,6 +4,7 @@ import { ArticleDetail } from "./pages/article-detail";
 import { ActivityDetail } from "./pages/activity-detail";
 import { Gallery } from "./pages/gallery";
 import { Recruit } from "./pages/recruit";
+import { RecruitRedirect } from "./pages/recruit-redirect";
 import { RecruitLanding } from "./pages/recruit-landing";
 import { AdminLogin } from "./pages/admin-login";
 import { AdminDashboard } from "./pages/admin-dashboard";
@@ -48,7 +49,8 @@ const fullSiteRoutes = [
     Component: Layout,
     children: [
       { index: true, Component: Home },
-      { path: "recruit", Component: Recruit },
+      // 메인 사이트에서는 지원서 폼을 직접 노출하지 않고 리크루팅 전용 사이트로 보낸다
+      { path: "recruit", Component: RecruitRedirect },
       { path: "notice", Component: Notice },
       { path: "articles/:id", Component: ArticleDetail },
       { path: "activities/:id", Component: ActivityDetail },

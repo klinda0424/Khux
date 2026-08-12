@@ -479,7 +479,7 @@ export function RecruitLanding() {
             <h2>
               3개 분야에서 <em>모집합니다</em>
             </h2>
-            <p>지원서에서 희망 분야를 3지망까지 선택할 수 있어요.</p>
+            <p>지원서에서 희망 분야를 2지망까지 선택할 수 있어요.</p>
           </div>
           <div className="track-list">
             <div className="track-item">
@@ -580,7 +580,7 @@ export function RecruitLanding() {
           <div>
             <details open>
               <summary>전공 무관하게 지원할 수 있나요?</summary>
-              <p>네. 실제로 4기 멤버 대부분이 서로 다른 전공입니다. 대신 지원 분야에 대한 관심과, 프로젝트를 끝까지 만들어보려는 의지를 봅니다.</p>
+              <p>네. 실제로 3기 멤버 대부분이 서로 다른 전공입니다. 대신 지원 분야에 대한 관심과, 프로젝트를 끝까지 만들어보려는 의지를 봅니다.</p>
             </details>
             <details>
               <summary>활동은 온라인인가요, 오프라인인가요?</summary>

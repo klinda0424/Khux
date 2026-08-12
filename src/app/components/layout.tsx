@@ -2,6 +2,7 @@ import { Outlet, Link, useLocation } from "react-router";
 import { Menu, X, Sun, Moon } from "lucide-react";
 import { useState, useEffect } from "react";
 import { apiFetch } from "../../utils/supabase-client";
+import { SITE_LINKS } from "../data/site-links";
 import { PointerGlow } from "./pointer-glow";
 
 export function Layout() {
@@ -138,16 +139,12 @@ export function Layout() {
                 Notice
               </Link>
               {recruitOpen && (
-                <Link
-                  to="/recruit"
-                  className={`text-sm font-medium transition-colors ${
-                    location.pathname === "/recruit"
-                      ? "text-foreground"
-                      : "text-text-sub hover:text-foreground"
-                  }`}
+                <a
+                  href={SITE_LINKS.recruitSite}
+                  className="text-sm font-medium transition-colors text-text-sub hover:text-foreground"
                 >
                   Recruit
-                </Link>
+                </a>
               )}
               <Link
                 to="/members/login"
@@ -221,17 +218,13 @@ export function Layout() {
                 Notice
               </Link>
               {recruitOpen && (
-                <Link
-                  to="/recruit"
+                <a
+                  href={SITE_LINKS.recruitSite}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm ${
-                    location.pathname === "/recruit"
-                      ? "text-foreground bg-surface2"
-                      : "text-text-sub hover:text-foreground hover:bg-surface2"
-                  }`}
+                  className="block w-full text-left px-4 py-2.5 rounded-lg transition-colors text-sm text-text-sub hover:text-foreground hover:bg-surface2"
                 >
                   Recruit
-                </Link>
+                </a>
               )}
               <Link
                 to="/members/login"
