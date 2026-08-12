@@ -1,6 +1,6 @@
 import { Outlet, Link } from "react-router";
 import { useEffect } from "react";
-import { Globe, Instagram, Linkedin } from "lucide-react";
+import { Globe, Instagram, Linkedin, Mail } from "lucide-react";
 import { SITE_LINKS } from "../data/site-links";
 import { PointerGlow } from "./pointer-glow";
 
@@ -8,6 +8,7 @@ const FOOTER_LINKS = [
   { href: SITE_LINKS.mainSite,  label: "KHUX 홈페이지", Icon: Globe },
   { href: SITE_LINKS.instagram, label: "Instagram",     Icon: Instagram },
   { href: SITE_LINKS.linkedin,  label: "LinkedIn",      Icon: Linkedin },
+  { href: SITE_LINKS.email && `mailto:${SITE_LINKS.email}`, label: SITE_LINKS.email, Icon: Mail },
 ].filter((l) => l.href);
 
 export function RecruitOnlyLayout() {
