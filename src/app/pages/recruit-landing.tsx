@@ -33,28 +33,29 @@ const LANDING_STYLES = `
   z-index:0;
 }
 .khux-landing .mono{font-family:'IBM Plex Mono', monospace;}
-/* 콘텐츠가 화면 폭에 비례해 꽉 차도록 고정 max-width 대신 유동 패딩 사용 */
+/* 히어로는 화면 폭에 비례해 꽉 차도록 유동 패딩 사용 */
 .khux-landing{ --side-pad:clamp(24px, 6vw, 120px); }
-.khux-landing .wrap{max-width:none; margin:0 auto; padding:0 var(--side-pad);}
+.khux-landing .wrap{max-width:960px; margin:0 auto; padding:0 32px;}
 .khux-landing .wrap-wide{max-width:none; margin:0 auto; padding:0 var(--side-pad);}
 .khux-landing a{color:inherit; text-decoration:none;}
 .khux-landing em{font-style:normal; color:var(--mint);}
 
 .khux-landing .track{
   position:absolute;
-  left:var(--side-pad);
+  left:50%;
   top:0;
   bottom:0;
   width:1px;
   background:linear-gradient(to bottom, transparent, rgba(45,212,166,0.25) 8%, rgba(45,212,166,0.25) 92%, transparent);
+  transform:translateX(-480px);
   z-index:0;
 }
 @media (max-width:1240px){ .khux-landing .track{display:none;} }
 
 .khux-landing .root-mark{
   position:absolute;
-  left:var(--side-pad);
-  transform:translate(-50%,-50%);
+  left:50%;
+  transform:translate(-481px,-50%);
   width:9px; height:9px;
   border-radius:50%;
   background:var(--bg);
