@@ -369,6 +369,81 @@ const LANDING_STYLES = `
 .khux-landing .in-view .reveal{ opacity:1; transform:translateY(0); }
 
 .khux-landing .hero .reveal{ opacity:1; transform:none; }
+
+/* ── 모션/강조효과 ─────────────────────────────────────────── */
+@keyframes khuxRise{
+  from{ opacity:0; transform:translateY(18px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+@keyframes khuxFloat{
+  0%,100%{ transform:translateY(0); }
+  50%{ transform:translateY(-10px); }
+}
+@keyframes khuxPulse{
+  0%,100%{ box-shadow:0 0 6px var(--mint); opacity:1; }
+  50%{ box-shadow:0 0 16px var(--mint); opacity:.65; }
+}
+@keyframes khuxGlow{
+  0%,100%{ box-shadow:0 0 0 0 rgba(45,212,166,0.0); }
+  50%{ box-shadow:0 0 26px 4px rgba(45,212,166,0.28); }
+}
+
+/* 히어로: 로드 시 순차 등장 + 브랜드 마크 플로팅 */
+.khux-landing .hero-copy > *{ animation:khuxRise .7s ease both; }
+.khux-landing .hero-copy > :nth-child(2){ animation-delay:.08s; }
+.khux-landing .hero-copy > :nth-child(3){ animation-delay:.16s; }
+.khux-landing .hero-copy > :nth-child(4){ animation-delay:.22s; }
+.khux-landing .hero-cta{ animation:khuxRise .7s ease .3s both; }
+.khux-landing .meta-row{ animation:khuxRise .7s ease .4s both; }
+.khux-landing .hero-visual img{ animation:khuxRise .9s ease both, khuxFloat 7s ease-in-out 1.2s infinite; }
+.khux-landing .eyebrow-tag::before{ animation:khuxPulse 2.4s ease-in-out infinite; }
+
+/* 스크롤 등장: 카드/리스트 스태거 */
+.khux-landing .why-card,
+.khux-landing .track-item,
+.khux-landing .proc-item,
+.khux-landing details{ opacity:0; }
+.khux-landing .in-view .why-card,
+.khux-landing .in-view .track-item,
+.khux-landing .in-view .proc-item,
+.khux-landing .in-view details{ animation:khuxRise .55s ease both; }
+.khux-landing .in-view .why-card:nth-child(2),
+.khux-landing .in-view .track-item:nth-child(2),
+.khux-landing .in-view .proc-item:nth-child(2),
+.khux-landing .in-view details:nth-child(2){ animation-delay:.1s; }
+.khux-landing .in-view .why-card:nth-child(3),
+.khux-landing .in-view .track-item:nth-child(3),
+.khux-landing .in-view .proc-item:nth-child(3),
+.khux-landing .in-view details:nth-child(3){ animation-delay:.2s; }
+.khux-landing .in-view .proc-item:nth-child(4),
+.khux-landing .in-view details:nth-child(4){ animation-delay:.3s; }
+.khux-landing .in-view .proc-item:nth-child(5){ animation-delay:.4s; }
+.khux-landing .in-view .proc-item:nth-child(6){ animation-delay:.5s; }
+
+/* 호버 강조 (transform은 등장 애니메이션과 충돌하므로 배경/글로우만 사용) */
+.khux-landing .why-card{ transition:background .25s ease; }
+.khux-landing .why-card:hover{ background:#111826; }
+.khux-landing .why-card:hover .num{ text-shadow:0 0 12px rgba(45,212,166,.8); }
+.khux-landing .track-item{ transition:background .25s ease; }
+.khux-landing .track-item:hover{ background:#111826; }
+.khux-landing .track-item:hover .role{ text-shadow:0 0 14px rgba(45,212,166,.55); }
+.khux-landing .proc-item{ transition:background .2s ease; }
+.khux-landing .proc-item:hover{ background:rgba(45,212,166,0.045); }
+
+/* 최종 CTA: 은은한 글로우 펄스 */
+.khux-landing .final .btn-primary{ animation:khuxGlow 2.8s ease-in-out infinite; }
+
+/* 모션 최소화 설정 사용자는 즉시 표시 */
+@media (prefers-reduced-motion: reduce){
+  .khux-landing *,
+  .khux-landing *::before,
+  .khux-landing *::after{ animation:none !important; transition:none !important; }
+  .khux-landing .reveal,
+  .khux-landing .why-card,
+  .khux-landing .track-item,
+  .khux-landing .proc-item,
+  .khux-landing details{ opacity:1 !important; transform:none !important; }
+}
 `;
 
 export function RecruitLanding() {
