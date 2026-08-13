@@ -199,8 +199,11 @@ const LANDING_STYLES = `
   .khux-landing .hero-visual{
     position:relative;
     right:auto; top:auto;
+    /* 데스크톱의 translateY(-54%)를 반드시 해제한다. 남겨두면 마크가 자기 높이의 절반만큼
+       위로 끌려 올라가 hero의 overflow:hidden에 윗부분이 잘린다. */
+    transform:none;
     margin:0 auto 16px;
-    width:min(52vw, 220px);
+    width:min(58vw, 250px);
   }
   .khux-landing .meta-row{ margin-top:40px; padding-top:24px; }
 }
