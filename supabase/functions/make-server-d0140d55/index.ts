@@ -632,6 +632,52 @@ app.get("/make-server-d0140d55/applications", async (c) => {
   }
 });
 
+// ============ Discord 지원 알림 ============
+// 지원서가 제출될 때마다 디스코드 채널로 알림을 보낸다 (3기 리크루팅 봇과 같은 형식).
+// 채널 웹훅 주소는 Supabase 시크릿 DISCORD_RECRUIT_WEBHOOK_URL 로 설정하며, 미설정 시 조용히 건너뛴다.
+const RECRUIT_OKR_TARGET = 10;
+
+async function notifyDiscordNewApplication(application: any, config: any) {
+  const webhookUrl = Deno.env.get("DISCORD_RECRUIT_WEBHOOK_URL");
+  if (!webhookUrl) return;
+
+  const fields = [...((config?.basicFields ?? []) as any[]), ...((config?.questions ?? []) as any[])];
+  // 지원 팀 필드가 숨김 처리된 뒤로는 "희망부서 - 1지망"(excludeGroup select 첫 항목)이 사실상의 지원 팀
+  const firstChoice = fields.find((f: any) => f.type === "select" && f.excludeGroup);
+  const team = (firstChoice && application[firstChoice.id]) || application.team || "-";
+  const academicField = fields.find((f: any) => String(f.label ?? "").includes("학적"));
+  const academicStatus = academicField ? application[academicField.id] : "";
+
+  const all = await kv.getByPrefix("application:");
+  const count = (all ?? []).length;
+  const remaining = Math.max(0, RECRUIT_OKR_TARGET - count);
+  const okrLine = remaining > 0
+    ? `*OKR 마감까지 ${remaining}명 남았습니다 🚀`
+    : `*OKR 달성! 현재까지 ${count}명 지원 🎉`;
+
+  const submitted = new Date(application.submittedAt).toLocaleString("ko-KR", {
+    timeZone: "Asia/Seoul",
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "2-digit", minute: "2-digit", hour12: true,
+  });
+
+  const generation = config?.generation ?? "KHUX 4기";
+  const content = [
+    `${application.name ?? "지원자"}님이 ${generation}에 지원했습니다.`,
+    `- 전공 : ${application.major ?? "-"} / ${academicStatus || "-"}`,
+    `- 지원 팀 : ${team}`,
+    `- 지원서 ${submitted} 제출`,
+    okrLine,
+  ].join("\n");
+
+  const res = await fetch(webhookUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content, username: "쿡스 리크루팅 봇" }),
+  });
+  if (!res.ok) console.log(`Discord recruit alert failed: ${res.status}`);
+}
+
 // Submit application (public)
 app.post("/make-server-d0140d55/applications", async (c) => {
   try {
@@ -662,6 +708,14 @@ app.post("/make-server-d0140d55/applications", async (c) => {
     };
 
     await kv.set(`application:${id}`, application);
+
+    // 디스코드 알림은 실패해도 지원서 제출 자체에는 영향을 주지 않는다
+    try {
+      await notifyDiscordNewApplication(application, config);
+    } catch (e) {
+      console.log(`Discord recruit alert error: ${e}`);
+    }
+
     return c.json({ application: { id, status: "pending" } }, 201);
   } catch (error) {
     console.log(`Error submitting application: ${error}`);
